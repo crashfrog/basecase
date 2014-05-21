@@ -44,7 +44,9 @@ class Job(models.model):
 	
 	job_type = models.ForeignKey(JobType)
 	
-	status = models.CharField(max_length=255, choices=[('ready','Ready to execute.'),
+	status = models.CharField(max_length=255, choices=[('pending', 'Initial state - ready to be packaged into a work unit.'),
+													   ('priority pending', 'Package first and execute at elevated priority.'),
+													   ('ready','Ready to execute.'),
 													   ('priority','Ready to execute at elevated priority.'),
 													   ('running','Running.'),
 													   ('exception','This step terminated with a fatal exception.'),
@@ -94,36 +96,63 @@ class Job(models.model):
 				time = '--'
 		self.save()
 		
-	def start(self)
-		"Method to parse celery call and begin job execution."
-		self.status = 'running'
-		self.save()
-		import basecase.functions
-		tokens = self.job_type.celery_call.split(".")
-		tokens.reverse()
-		def recursive_getattr(module, tokens)
-			if len(tokens) == 1:
-				return getattr(module, tokens[0])
-			token = tokens.pop()
-			return recursive_getattr(getattr(module, token), tokens)
-			
-		
-			
-			
-		recursive_getattr(basecase.functions, tokens).delay(**self.parameters)
+# 	def start(self)
+# 		"Method to parse celery call and begin job execution."
+# 		self.status = 'running'
+# 		self.save()
+# 		import basecase.functions
+# 		tokens = self.job_type.celery_call.split(".")
+# 		tokens.reverse()
+# 		def recursive_getattr(module, tokens)
+# 			if len(tokens) == 1:
+# 				return getattr(module, tokens[0])
+# 			token = tokens.pop()
+# 			return recursive_getattr(getattr(module, token), tokens)
+# 			
+# 		
+# 			
+# 			
+# 		recursive_getattr(basecase.functions, tokens).delay(**self.parameters)
 	
-	def finish(*args, **kwargs):
+# 	def finish(*args, **kwargs):
+# 			
+# 		self.status = 'finished'
+# 		self.save()
+# 		for job in self.subsequents:
+# 			job.start()
+
+	def attach_resource(self, filename, stream_handle, temporary=False, checksum=''):
+		"Convenience function to attach file to job"
+		import os
+		import os.path
+		import hashlib
+
+		default_file_root = ...
+
+		filedir = os.path.join(default_file_root, "jobchain_{}".format(self.chain_id))
+			if not os.path.exists(filedir):
+				os.mkdir(filedir)
 			
-		self.status = 'finished'
-		self.save()
-		for job in self.subsequents:
-			job.start()
+		self.resources.create(
 
 	
 class Resource(models.model):
 	
-	location = 
+	real_location = models.TextField(null=True, blank=True)
+	virtual_location = models.TextField(null=True, blank=True)
 	temporary = models.BooleanField('Whether this resource should be deleted after chain is complete.', default=False)
+	checksum = models.CharField(max_length=32)
+	
+	def __del__(self):
+		import shutil, os, os.path
+		try:
+			if os.path.isdir(real_location):
+				shutil.rmtree(real_location)
+			else:
+				os.remove(real_location)
+		except:
+			pass
+		super(models.model, self).__del__(self)
 	
 class AnalysisStep(models.model):
 	"Analysis workflow default object."
