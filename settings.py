@@ -1,0 +1,1 @@
+DEFAULT_PATH_ROOT = '/shared/gn3/Basecase'
