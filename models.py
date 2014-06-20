@@ -14,8 +14,7 @@ class JobType(models.model):
 	
 	binaries = models.ManyToManyField('Resource')
 	
-	positional_prototype = JsonField(blank=True)
-	flag_prototype = JsonField('A JSON structure of parameter arguments and defaults for jobs of this type.', blank=True)
+	prototype = JsonField('A JSON structure of parameter arguments and defaults for jobs of this type.', blank=True)
 	
 	inputs = JsonField(default=lambda: {'file extensions':['.fastq', '.fastq.gz'], 'directory':False})
 	
@@ -27,11 +26,9 @@ class JobType(models.model):
 	
 	def save(self, *args, **kwargs):
 		"Method override so that child events inherit changes to prototype."
-		for prototype in ('positional_prototype', 'flag_prototype'):
-			old_prototype = 'old_{}'.format(prototype)
-			if getattr(self, old_prototype) != getattr(self, prototype):
+			if .self.old_prototype != self.prototype:
 				for job in self.job_set:
-					for key, default_value in getattr(self, prototype).items():
+					for key, default_value in self.prototype.items():
 						if key not in job.parameters:
 							job.parameters[key] = default_value
 							job.save()
@@ -88,6 +85,18 @@ class Job(models.model, Walkable):
 	resources = models.ManyToManyField('Resource')
 	
 	provenance = models.TextField(blank=True, null=True)
+	
+	started = models.DateTimeField(null=True, blank=True)
+	finished = models.DateTimeField(null=True, blank=True)
+	
+	@property
+	def elapsed(self):
+		if self.started and self.finished:
+			return self.finished - self.started
+		elif self.started:
+			return datetime.datetime.now() - self.started
+		else:
+			return False
 	
 	
 	def chain_id(self):
@@ -168,6 +177,15 @@ class Job(models.model, Walkable):
 			self.status = 'priority'
 		else:
 			self.status = 'ready'
+			
+class DataPoint(models.model):
+	"CPU, memory, disk usage monitoring data point, created by remote worker threads for job-resource analysis."
+	job = models.ForeignKey(Job)
+	timepoint = models.DateTimeField()
+	cpu = models.IntegerField("cores x load", default=0)
+	memory = models.IntegerField("memory usage in bytes", default=0)
+	disk_usage = models.IntegerField("Usage of temp dir in bytes", default=0)
+
 	
 class Resource(models.model):
 	
