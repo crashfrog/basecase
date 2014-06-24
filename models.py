@@ -26,7 +26,7 @@ class JobType(models.model):
 	
 	def save(self, *args, **kwargs):
 		"Method override so that child events inherit changes to prototype."
-			if .self.old_prototype != self.prototype:
+			if self.old_prototype != self.prototype:
 				for job in self.job_set:
 					for key, default_value in self.prototype.items():
 						if key not in job.parameters:
