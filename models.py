@@ -1,5 +1,6 @@
 from django.db import models
 from events.models import JsonField
+import datetime
 
 # Create your models here.
 
@@ -10,7 +11,7 @@ class JobType(models.model):
 	description = models.TextField(blank=True, null=False)
 	citation = models.TextField(blank=True, null=True)
 	
-	celery_call = models.CharField(max_length=255, default='debug.test')
+	#celery_call = models.CharField(max_length=255, default='debug.test')
 	prototype = JsonField('A JSON structure of parameter arguments and defaults for jobs of this type.', blank=True)
 	
 	inputs = JsonField(default=lambda: {'file extensions':['.fastq', '.fastq.gz'], 'directory':False})
@@ -57,8 +58,20 @@ class Job(models.model):
 	parameters = JsonField(blank=True)
 	result = JsonField(blank=True)
 	
-	predicate = models.ForiegnKey('self', null=True, related_name='subsequents')
+	predicate = models.ForeignKey('self', null=True, related_name='subsequents')
 	resources = models.ManyToManyField('Resource')
+	
+	started = models.DateTimeField(null=True, blank=True)
+	finished = models.DateTimeField(null=True, blank=True)
+	
+	@property
+	def elapsed(self):
+		if self.started and self.finished:
+			return self.finished - self.started
+		elif self.started:
+			return datetime.datetime.now() - self.started
+		else:
+			return False
 	
 	def chain_id(self):
 		"Recursive method to find id of the chain this job is in; used for tempfiles, cache directories, etc."
@@ -118,6 +131,15 @@ class Job(models.model):
 		self.save()
 		for job in self.subsequents:
 			job.start()
+			
+			
+class DataPoint(models.model):
+	"CPU, memory, disk usage monitoring data point, created by remote worker threads for job-resource analysis."
+	job = models.ForeignKey(Job)
+	timepoint = models.DateTimeField()
+	cpu = models.IntegerField("cores x load", default=0)
+	memory = models.IntegerField("memory usage in bytes", default=0)
+	disk_usage = models.IntegerField("Usage of temp dir in bytes", default=0)
 
 	
 class Resource(models.model):
