@@ -150,26 +150,28 @@ class Job(models.Model, Walkable):
 		import os.path
 		from django.template.loader import render_to_string
 		
-		default_workunit_staging = basecase.settings.DEFAULT_PATH_ROOT
-		try:
-			temparchive = tempfile.TemporaryFile(dir='/run/shm')
-		except:
-			temparchive = tempfile.TemporaryFile()
-			
-		with tarfile.open(fileobj=temparchive, mode='w:bz2') as workunit:
-			for resource in self.job_type.binaries:
-				workunit.add(resource.real_location, 
-							 arcname=os.path.join('binaries', os.path.split(resource.real_location)[0]))
-			for resource in self.resources:
-				workunit.add(resource.real_location, 
-							 arcname=os.path.join('resources', os.path.split(resource.real_location)[0]))
-		temparchive.flush()
-		with open(os.path.join(default_workunit_staging, 'job_{}.sh'.format(self.pk)), 'w') as workunit:
-			commands = list()
-			#parse job and job prototype into workunit shell#
-			workunit.write(render_to_string('workunit.sh', {'commands':commands}))
-		subprocess.check_call('cat {} >> {}/job_{}.sh'.format(temparchive.name, default_workunit_staging, self.pk))
-		temparchive.close()
+		# default_workunit_staging = basecase.settings.DEFAULT_PATH_ROOT
+# 		try:
+# 			temparchive = tempfile.TemporaryFile(dir='/run/shm')
+# 		except:
+# 			temparchive = tempfile.TemporaryFile()
+# 			
+# 		with tarfile.open(fileobj=temparchive, mode='w:bz2') as workunit:
+# 			for resource in self.job_type.binaries:
+# 				workunit.add(resource.real_location, 
+# 							 arcname=os.path.join('binaries', os.path.split(resource.real_location)[0]))
+# 			for resource in self.resources:
+# 				workunit.add(resource.real_location, 
+# 							 arcname=os.path.join('resources', os.path.split(resource.real_location)[0]))
+# 		temparchive.flush()
+# 		with open(os.path.join(default_workunit_staging, 'job_{}.sh'.format(self.pk)), 'w') as workunit:
+# 			commands = list()
+# 			#parse job and job prototype into workunit shell#
+# 			workunit.write(render_to_string('workunit.sh', {'commands':commands}))
+# 		subprocess.check_call('cat {} >> {}/job_{}.sh'.format(temparchive.name, default_workunit_staging, self.pk))
+# 		temparchive.close()
+
+#		do this with Docker instead
 		
 		if 'priority' in self.status:
 			self.status = 'priority'
