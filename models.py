@@ -10,11 +10,23 @@ class JobType(models.Model):
 	description = models.TextField(blank=True, null=False)
 	citation = models.TextField(blank=True, null=True)
 	
-	binaries = models.ManyToManyField('Resource')
+#	binaries = models.ManyToManyField('Resource')
 	
-	prototype = JsonField('A JSON structure of parameter arguments and defaults for jobs of this type.', blank=True)
+	image = models.CharField("Name or ID of the docker image for this tool.", max_length=80, unique=True)
+	command_template = models.TextField("Django template for command.", help_text="""
+This is rendered by Django's template engine and supplied as the default command for the job image. The context will
+include at least:
+The resources list (one directory, or as many files as match the patters specified in self.inputs, as absolute paths)
+at 'resources',
+the output path at 'output',
+the flag argument list at 'flags',
+the options argument list at 'options'
+""")
 	
-	inputs = JsonField(default=lambda: {'file extensions':['.fastq', '.fastq.gz'], 'directory':False})
+	prototype = JsonField('A JSON structure of parameter arguments and defaults for jobs of this type.', blank=True, default=([], {}))
+	
+	inputs = JsonField(default=lambda: {'patterns':['*fastq', '*fastq.gz'], 'directory':False})
+	shortwork = models.BooleanField("Shortwork job types don't farm out to workers but execute locally", default=False)
 	
 	def __init__(self, *args, **kwargs):
 		"Method override to capture changes on prototype field."
@@ -31,6 +43,7 @@ class JobType(models.Model):
 						job.parameters[key] = default_value
 						job.save()
 		super(JobType, self).save(*args, **kwargs)
+		
 		
 # 	def spawn(self, status='ready', **kwargs):
 # 		params = dict()
@@ -63,7 +76,7 @@ class Walkable(object):
 class Job(models.Model, Walkable):
 	
 	type = models.ForeignKey(JobType)
-	
+	analysis = models.ForeignKey('Analysis', related_name='spawned_jobs', null=True)
 	status = models.CharField(max_length=255, choices=[('pending', 'Initial state - ready to be packaged into a work unit.'),
 													   ('priority pending', 'Package first and execute at elevated priority.'),
 													   ('ready','Ready to execute.'),
@@ -77,7 +90,7 @@ class Job(models.Model, Walkable):
 	workunit = models.TextField('Path to self-executing workunit, if available', blank=True, null=True)
 	
 	parameters = JsonField(blank=True)
-	result = JsonField(blank=True)
+	#result = JsonField(blank=True)
 	
 	predicates = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False) #this is a directed acyclic graph
 	resources = models.ManyToManyField('Resource')
@@ -86,6 +99,7 @@ class Job(models.Model, Walkable):
 	
 	started = models.DateTimeField(null=True, blank=True)
 	finished = models.DateTimeField(null=True, blank=True)
+	
 	
 	@property
 	def elapsed(self):
@@ -108,7 +122,13 @@ class Job(models.Model, Walkable):
 			return (all([lambda p: 'finished' in p.status for p in self.predicates]) and ('pending' in self.status))
 		return ('pending' in self.status)
 
-		
+	def command(self):
+		from django.template.loader import render_to_string
+		context = {'resources':self.resources,
+				   'output':basecase.settings.DEFAULT_OUTPUT_DIR,
+				   'flags':self.parameters[0],
+				   'options':self.parameters[1]}
+		cmd = render_to_string(self.job_type.command_template, context)
 	
 	def log(self, message):
 		"Simple logging function."
@@ -144,39 +164,50 @@ class Job(models.Model, Walkable):
 			resource.checksum = sum.hexdigest()
 			
 	def prepare_workunit(self):
-		import tarfile
-		import tempfile
-		import subprocess
-		import os.path
-		from django.template.loader import render_to_string
+		if not self.job_type.shortwork:
+			import tarfile
+			import tempfile
+			import subprocess
+			import os, os.path
+			from django.template.loader import render_to_string
+			import docker-py
 		
-		# default_workunit_staging = basecase.settings.DEFAULT_PATH_ROOT
-# 		try:
-# 			temparchive = tempfile.TemporaryFile(dir='/run/shm')
-# 		except:
-# 			temparchive = tempfile.TemporaryFile()
-# 			
-# 		with tarfile.open(fileobj=temparchive, mode='w:bz2') as workunit:
-# 			for resource in self.job_type.binaries:
-# 				workunit.add(resource.real_location, 
-# 							 arcname=os.path.join('binaries', os.path.split(resource.real_location)[0]))
-# 			for resource in self.resources:
-# 				workunit.add(resource.real_location, 
-# 							 arcname=os.path.join('resources', os.path.split(resource.real_location)[0]))
-# 		temparchive.flush()
-# 		with open(os.path.join(default_workunit_staging, 'job_{}.sh'.format(self.pk)), 'w') as workunit:
-# 			commands = list()
-# 			#parse job and job prototype into workunit shell#
-# 			workunit.write(render_to_string('workunit.sh', {'commands':commands}))
-# 		subprocess.check_call('cat {} >> {}/job_{}.sh'.format(temparchive.name, default_workunit_staging, self.pk))
-# 		temparchive.close()
+			stage = os.path.join(basecase.settings.DEFAULT_PATH_ROOT, 'workunits', self.chain_id(), self.pk)
+	# 		try:
+	# 			temparchive = tempfile.TemporaryFile(dir='/run/shm')
+	# 		except:
+	# 			temparchive = tempfile.TemporaryFile()
+	# 			
+	# 		with tarfile.open(fileobj=temparchive, mode='w:bz2') as workunit:
+	# 			for resource in self.job_type.binaries:
+	# 				workunit.add(resource.real_location, 
+	# 							 arcname=os.path.join('binaries', os.path.split(resource.real_location)[0]))
+	# 			for resource in self.resources:
+	# 				workunit.add(resource.real_location, 
+	# 							 arcname=os.path.join('resources', os.path.split(resource.real_location)[0]))
+	# 		temparchive.flush()
+	# 		with open(os.path.join(default_workunit_staging, 'job_{}.sh'.format(self.pk)), 'w') as workunit:
+	# 			commands = list()
+	# 			#parse job and job prototype into workunit shell#
+	# 			workunit.write(render_to_string('workunit.sh', {'commands':commands}))
+	# 		subprocess.check_call('cat {} >> {}/job_{}.sh'.format(temparchive.name, default_workunit_staging, self.pk))
+	# 		temparchive.close()
 
-#		do this with Docker instead
+	#		do this with Docker instead
+
+			if not os.path.exists(stage):
+				os.makedirs(stage)
 		
-		if 'priority' in self.status:
-			self.status = 'priority'
+		
+		
+			if 'priority' in self.status:
+				self.status = 'priority'
+			else:
+				self.status = 'ready'
 		else:
-			self.status = 'ready'
+			#do the shortwork, whatever that is, usually some kind of fan-in or out
+			
+			self.status = 'finished'
 			
 class DataPoint(models.Model):
 	"CPU, memory, disk usage monitoring data point, created by remote worker threads for job-resource analysis."
@@ -237,6 +268,9 @@ class AnalysisStep(models.Model, Walkable):
 			return any([s.is_cyclic(job1) for s in self.subsequents])
 		return False
 		
+	def get_args(self, argslist):
+		
+		
 # class AnalysisController(AnalysisStep):
 # 	"Flow-control analysis step; abstract singleton base class for fan-outs, switches, etc"
 # 	class Meta:
@@ -258,19 +292,31 @@ class AnalysisStep(models.Model, Walkable):
 # 	
 	
 class Analysis(models.Model):
-	"An analysis is a prototype for a chain of jobs."
+	"An analysis is a handle for a chain of jobs."
 	name = models.CharField('A short name for this analysis workflow.', max_length=255)
 	description = models.TextField('An explanitory description of this analysis workflow.')
 	analysis_head = models.OneToOneField(AnalysisStep)
 	
-	def spawn(self, status='pending', **kwargs):
-		return self.analysis_head.spawn(status, **kwargs)
-		
+	def get_args(self):
+		"Collect a list of parameters for the analysis chain."
 	
+	def spawn(self, status='pending', **kwargs):
+		head_job = self.analysis_head.spawn(status, **kwargs)
+		self.spawned_jobs.add(head_job)
+		return job
+		
 		
 	def is_cyclic(self):
 		#true-false if it contains a cycle
 		sb = analysis.head.subset()
 		sb.remove(analysis_head)
 		return any([analysis_head.is_cyclic(s) for s in sb]) 
-	
+		
+	def aggregate(self, jobs):
+		"Method to produce combined, single docker image to reproduce the entire analysis."	
+		pass
+		
+	@classmethod
+	def aggregate(jobs):
+		"Class method to aggregate multiple docker aggregations into a single one."
+		pass
