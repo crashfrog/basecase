@@ -8,7 +8,7 @@ ADD https://s3.amazonaws.com/files.pacb.com/software/smrtanalysis/2.2.0/smrtanal
 
 EXPOSE 80
 
-EXPORT SMRT_ROOT=/opt/smrtanalysis
+ENV SMRT_ROOT /opt/smrtanalysis
 RUN mkdir $SMRT_ROOT
 RUN useradd smrtanalysis
 RUN echo "smrtanalysis" | passwd smrtanalysis --stdin
