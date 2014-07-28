@@ -87,7 +87,7 @@ class Job(models.Model, Walkable):
 													   ('finished','Job completed with no errors.')])
 													   
 	log_text = models.TextField(blank=True, null=True)
-	workunit = models.TextField('Path to self-executing workunit, if available', blank=True, null=True)
+	workunit = models.TextField('name of docker image workunit', blank=True, null=True)
 	
 	parameters = JsonField(blank=True)
 	#result = JsonField(blank=True)
@@ -170,7 +170,7 @@ class Job(models.Model, Walkable):
 			import subprocess
 			import os, os.path
 			from django.template.loader import render_to_string
-			import docker-py
+			import docker
 		
 			stage = os.path.join(basecase.settings.DEFAULT_PATH_ROOT, 'workunits', self.chain_id(), self.pk)
 	# 		try:
@@ -197,9 +197,21 @@ class Job(models.Model, Walkable):
 
 			if not os.path.exists(stage):
 				os.makedirs(stage)
-		
-		
-		
+			
+			context = {'job':self,
+					   'job_type',self.job_type,
+					   'config':basecase.settings}
+			dockerfile_path = os.path.join(stage, 'Dockerfile')
+			with open(dockerfile_path, 'r') as dockerfile:
+				dockerfile.write(render_to_string('build_template.dockerfile', context))
+				
+			client = docker.Client(base_url='unix://var/run/docker.sock',
+								   version='1.12',
+								   timeout=10)
+			try:
+				self.workunit = client.build(dockerfile_path, tag='job{}'.format(self.pk))
+			except Exception:
+				pass #actually do things here
 			if 'priority' in self.status:
 				self.status = 'priority'
 			else:

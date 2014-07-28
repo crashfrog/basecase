@@ -2,12 +2,15 @@
 # 
 
 FROM {{ job_type.image }}
-MAINTAINER {{ config.instance }}, {{ config.admin }}
+MAINTAINER {{ config.INSTANCE }}, {{ config.ADMIN_EMAIL }}
 
 RUN mkdir {{ config.default_input_dir }}
 
-{% for resource in resources %}
+{% for resource in job.resources %}
 COPY {{ resource.real_location }} /data/
 {% endfor %}
+
+RUN apt-get clean
+RUN apt-get autoclean
 
 CMD {{ job.command }}
