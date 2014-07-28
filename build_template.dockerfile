@@ -7,10 +7,11 @@ MAINTAINER {{ config.INSTANCE }}, {{ config.ADMIN_EMAIL }}
 RUN mkdir {{ config.default_input_dir }}
 
 {% for resource in job.resources %}
-COPY {{ resource.real_location }} /data/
+COPY {{ resource.real_location }} {{ config.default_input_dir }}
 {% endfor %}
 
 RUN apt-get clean
 RUN apt-get autoclean
 
+WORKDIR {{ config.default_input_dir }}
 CMD {{ job.command }}
