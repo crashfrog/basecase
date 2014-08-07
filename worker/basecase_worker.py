@@ -75,6 +75,7 @@ class BCWorker(Daemon):
 					raise requests.exceptions.RequestException("Unknown response from Basecase API: {}".format(r.status_code))
 			except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as e:
 				#do something
+				raise
 
 
 
