@@ -2,6 +2,13 @@ version = 1
 
 from django.conf.urls import include, patterns, url
 
+import urls
+import basecase.settings
+
+urls.urlpatterns += patterns( #monkeypatch in the API endpoint
+	url('^{}'.format(basecase.settings.API), include('basecase.api'))
+	)
+
 urlpatterns = patterns(
 
 	url(r"config/(?P<worker_conf>/$", config)
