@@ -1,10 +1,19 @@
 from django.test import TestCase
 
+
 # Create your tests here.
 
 from basecase.models import *
 
 jobtype_args = {'name':'TestJobType',  'prototype':[{'test_arg':'foo', 'test_arg2':'bar'}, 'baz']}
+spades_type_args = {
+	'name':'SpadesTest',
+	'prototype':[{'o', '/tmp/'}, 'test'],
+	'description':"Spades 3.1 internal tests",
+	'image':'localhost:5000/spades:3.1',
+	'command_template':"spades.py {flags} {options}",
+	'shortwork':False
+}
 
 class JobTypeTest(TestCase):
 	
@@ -39,5 +48,57 @@ class TestSpawn(TestCase):
 		
 	def testComplexSpawn(self):
 		job = self.head.spawn('priority pending', 'test_arg':'baz', 'step_arg':'qux', )
+
+
+class TestDocker(TestCase):
+
+	def setUp(self):
+		import docker
+
+	def testDocker(self):
+		#make a container from the basecase image
+
+	def tearDown(self):
+		import docker
+
+
+class TestPreparation(TestCase):
+
+	def setUp(self):
+		import docker
+
+	def testMakeUnit(self):
+		pass
+
+
+
+	def tearDown(self):
+		import docker
+
+
+class TestApiObjectRepresentation(TestCase):
+
+	def setUp(self):
+
+
+	def testApi(self):
 		
-		
+class TestApiEndpoints(TestCase):
+
+	def setUp(self):
+
+	def testGET(self):
+
+	def testPOST(self):
+
+	def testPUT(self):
+
+	def testUpload(self):
+
+	def tearDown(self):
+
+class TestSpades(TestCase):
+
+	def setUp(self):
+
+	def testSpades(self):

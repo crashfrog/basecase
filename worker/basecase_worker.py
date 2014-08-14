@@ -30,10 +30,13 @@ class BCWorker(Daemon):
 			with open("prefs.json", 'w') as prefs_file:
 				json.dump(self.prefs, prefs_file, indent=2)
 
-	def api_get(self, endpoint, auth=self.auth:
+	def api_get(self, endpoint, auth=self.auth):
 		if endpoint[0] != '/':
 			endpoint = '/' + endpoint
 		return requests.get(self.prefs['api'] + endpoint, auth=auth)
+
+	def api_post(self, endpoint, auth=self.auth):
+		pass
 
 
 	def run(self):
@@ -54,12 +57,14 @@ class BCWorker(Daemon):
 					#make the output folder
 					output = tempfile.mkdirtemp()
 					#start the monitor thread and run the job with the output folder attached
-					workunit = dock.create_container(job['id'], volumes=(output, ))
+					m = dock.create_container(job['id'], volumes=(output, ))
 					dock.start(workunit, binds={job['output_dir']:{'bind':output, 'ro':False}})
 					mon = monitor.BCWorkerMonitor(job, workunit, self.prefs)
 					mon.start()
 					#wait for completion
-					dock.wait(workunit)
+					for line in dock.logs(workunit, stream=True):
+						self.api_post(job['logging_url'], line)
+					#dock.wait(workunit)
 					mon.quit()
 					mon.join()
 					#upload the output files

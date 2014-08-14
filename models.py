@@ -1,5 +1,6 @@
 from django.db import models
 from events.models import JsonField
+from django.core.urlresolvers import reverse
 
 import basecase.settings
 
@@ -43,6 +44,8 @@ the options argument list at 'options'
 						job.parameters[key] = default_value
 						job.save()
 		super(JobType, self).save(*args, **kwargs)
+
+
 		
 		
 # 	def spawn(self, status='ready', **kwargs):
@@ -72,10 +75,11 @@ class Walkable(object):
 		for wb in self.subsequents:
 			s = s + wb.subset()
 		return s
+
 	
 class Job(models.Model, Walkable):
 	
-	type = models.ForeignKey(JobType)
+	job_type = models.ForeignKey(JobType)
 	analysis = models.ForeignKey('Analysis', related_name='spawned_jobs', null=True)
 	status = models.CharField(max_length=255, choices=[('pending', 'Initial state - ready to be packaged into a work unit.'),
 													   ('priority pending', 'Package first and execute at elevated priority.'),
@@ -95,7 +99,7 @@ class Job(models.Model, Walkable):
 	predicates = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False) #this is a directed acyclic graph
 	resources = models.ManyToManyField('Resource')
 	
-	provenance = models.TextField(blank=True, null=True)
+	#provenance = models.TextField(blank=True, null=True)
 	
 	started = models.DateTimeField(null=True, blank=True)
 	finished = models.DateTimeField(null=True, blank=True)
@@ -163,7 +167,7 @@ class Job(models.Model, Walkable):
 		else:
 			resource.checksum = sum.hexdigest()
 			
-	def prepare_workunit(self):
+	def build_workunit(self):
 		if not self.job_type.shortwork:
 			import tarfile
 			import tempfile
@@ -171,6 +175,7 @@ class Job(models.Model, Walkable):
 			import os, os.path
 			from django.template.loader import render_to_string
 			import docker
+			import json
 		
 			stage = os.path.join(basecase.settings.DEFAULT_PATH_ROOT, 'workunits', self.chain_id(), self.pk)
 	# 		try:
@@ -208,8 +213,16 @@ class Job(models.Model, Walkable):
 			client = docker.Client(base_url='unix://var/run/docker.sock',
 								   version='1.12',
 								   timeout=10)
+			self.workunit = '{}:{}/job{}'.format(
+						basecase.settings.DOCKER_REPOSITORY_HOST,
+						basecase.settings.DOCKER_REPOSITORY_PORT,
+						self.pk)
+
 			try:
-				self.workunit = client.build(dockerfile_path, tag='job{}'.format(self.pk))
+				for m in client.build(stage, tag=self.workunit):
+					self.log(json.loads(m)['stream'])
+				for m in client.push(self.workunit):
+					self.log(json.loads(m)['stream'])
 			except Exception:
 				pass #actually do things here
 			if 'priority' in self.status:
@@ -220,6 +233,24 @@ class Job(models.Model, Walkable):
 			#do the shortwork, whatever that is, usually some kind of fan-in or out
 			
 			self.status = 'finished'
+			self.save()
+
+	def get_absolute_url(self, subpath=''):
+		#return 'basecase' + basecase.settings.API + 'job/{}/{}'.format(self.pk, subpath)
+		return reverse('job_endpoint', {'job_id':self.pk})
+
+
+	def json(self):
+		return {
+			'id':self.pk,
+			'analysis':self.analysis.get_absolute_url(),
+			'name':self.job_type.name,
+			'status':self.status,
+			'workunit_url':workunit,
+			'output_dir':basecase.settings.DEFAULT_OUTPUT_DIR,
+			'datapoints':reverse("job_datapoints_endpoint", {'job_id':self.pk}),
+			'logging_url':reverse("log_endpoint", {'job_id':self.pk})
+		}
 			
 class DataPoint(models.Model):
 	"CPU, memory, disk usage monitoring data point, created by remote worker threads for job-resource analysis."
@@ -230,6 +261,20 @@ class DataPoint(models.Model):
 	disk_usage = models.IntegerField("Usage of temp dir in bytes", default=0)
 	message = models.CharField(max_length=255, null=True, blank=True)
 
+	def json(self):
+		return {
+			'id':self.pk,
+			'job':self.job.get_absolute_url(),
+			'timepoint'self.timepoint,
+			'cpu':self.cpu,
+			'memory':self.memory,
+			'disk_usage':self.disk_usage,
+			'message':self.message,
+			'formats':[]
+		}
+	def get_absolute_url(self):
+		#return 'basecase' + basecase.settings.API + 'datapoint/{}'
+		return reverse('datapoint_endpoint', {'job_id':self.job.pk, 'datapoint_id':self.pk})
 	
 class Resource(models.Model):
 	
@@ -280,7 +325,10 @@ class AnalysisStep(models.Model, Walkable):
 			return any([s.is_cyclic(job1) for s in self.subsequents])
 		return False
 		
-	def get_args(self, argslist):
+	def get_args(self, argsdict):
+		args = {'flags':self.job_type.prototype[0],
+				'options':self.job_type.prototype[1]}
+		argsdict[self.job_type.name] = args
 		
 		
 # class AnalysisController(AnalysisStep):
@@ -332,3 +380,18 @@ class Analysis(models.Model):
 	def aggregate(jobs):
 		"Class method to aggregate multiple docker aggregations into a single one."
 		pass
+
+	def json(self):
+		from collections import OrderedDict
+		struct = {
+			'id':self.pk,
+			'name':self.name,
+			'description':self.description
+		}
+
+		argsdict = OrderedDict()
+		analysis_head.walk(lambda a: a.get_args(argsdict))
+
+	def get_absolute_url(self):
+		return reverse("analyses_endpoint", {'analysis_id':self.pk})
+
