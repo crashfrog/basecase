@@ -1,4 +1,4 @@
-FROM crashfrog/basecase:latest
+FROM localhost:5000/basecase-basic
 MAINTAINER Justin Payne, justin.payne@fda.hhs.gov
 
 ADD http://spades.bioinf.spbau.ru/release3.0.0/SPAdes-3.0.0-Linux.tar.gz /tmp/
