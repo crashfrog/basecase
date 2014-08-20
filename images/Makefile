@@ -7,46 +7,37 @@ default: basic analyzers assemblers basecallers correction monolithics trimmers
 
 tests: basic spades-test
 
-basic: basic/.build
-
-basic/.build:
+basic:
 	$(DK) -t $(HS)/basecase-basic basic/
 	$(DK) -t $(HS)/basecase-basic-jre basic/jre/
 	$(DP)basecase-basic
 	$(DP)basecase-basic-jre
-	@touch basic/.build
 
 #Assemblers
 	
 assemblers: basic mhap sga spades
 
-spades: basic assemblers/SPAdes/.build
-
-assemblers/SPAdes/.build: 
+spades: 
 	$(DK) -t $(HS)/spades:latest assemblers/SPAdes/3.1/
 	$(DK) -t $(HS)/spades:3.1 assemblers/SPAdes/3.1/
 	$(DK) -t $(HS)/spades:3.0 assemblers/SPAdes/3.0/
-	@touch assemblers/SPAdes/.build
+	$(DP)spades:3.1
+	$(DP)spades:3.0
+	$(DP)spades:latest
 	
-mhap: basic assemblers/MHAP/.build
-
-assemblers/MHAP/.build:
+mhap:
 	$(DK) -t $(HS)/mhap:latest assemblers/MHAP/
-	@touch assemblers/MHAP/.build
+	$(DP)mhap:latest
 	
-sga: basic assemblers/SGA/.build
-
-assemblers/SGA/.build:
+sga:
 	$(DK) -t $(HS)/sga:latest assemblers/SGA/
-	@touch assemblers/SGA/.build
+	$(DP)sga:latest
 	
 #Analyzers
 	
 analyzers: basic circos 
 
-circos: basic analyzers/Circos/.build
-
-analyzers/Circos/.build:
+circos:
 	#$(DK) -t $(HS)/circos:latest analyzers/Circos/
 	#@touch analyzers/Circos/.build
 
@@ -62,12 +53,10 @@ correction: basic
 
 monolithics: basic smrtportal snp-pipeline qiime
 
-smrtportal: basic monolithics/SMRTPortal/.build
-
-monolithics/SMRTPortal/.build:
+smrtportal:
 	$(DK) -t $(HS)/smrtportal:latest monolithics/SMRTPortal/2.2.0
 	$(DK) -t $(HS)/smrtportal:2.2.0 monolithics/SMRTPortal/2.2.0
-	@touch monolithics/SMRTPortal/.build
+	$(DP)smrtportal:latest
 	
 snp-pipeline: basic
 
@@ -77,12 +66,10 @@ qiime: basic
 
 trimmers: basic fastx-trimmer scythe
 
-fastx-trimmer: basic trimmers/fastx-trimmer/.build
-
-trimmers/fastx-trimmer/.build:
+fastx-trimmer:
 	$(DK) -t $(HS)/fastx-trimmer:latest trimmers/fastx-trimmer/0.0.14
 	$(DK) -t $(HS)/fastx-trimmer:0.0.14 trimmers/fastx-trimmer/0.0.14
-	@touch trimmers/fastx-trimmer/.build
+	$(DP)fastx-trimmer:latest
 	
 scythe: basic
 	
@@ -91,3 +78,4 @@ scythe: basic
 
 spades-test: basic spades
 	$(DK) -t spades-test tests/spades/
+	$(DP)spades-test
