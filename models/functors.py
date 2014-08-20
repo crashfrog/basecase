@@ -34,14 +34,19 @@ class Functor(models.Model):
 		getattr(self.module, self.functor_type.instance_name)(entry, exit, resources, **self.kwargs)
 		
 		
-class Bind():
+class Pass():
 	def __call__(self, entry, exit, resources, *args, **kwargs):
 		"the identity functor"
 		pass
 		
-class Map():
+class Fanout():
 	def __call__(self, entry, exit, resources, *args, **kwargs):
 		"the Map functor"
+		pass
+
+class Fanin():
+	def __call__(self, entry, exit, resources, *agrs, **kwargs):
+		"the unMap functor, I guess"
 		pass
 		
 class UnixPipe():
@@ -53,9 +58,3 @@ class Filter():
 	def __call__(self, entry, exit, resources, pattern, *args, **kwargs):
 		"a filtering functor"
 		pass
-		
-class Maybe():
-	def __call__(self, *args, **kwargs):
-		"a Maybe functor" #maybe.. this is wrong
-		pass
-		
