@@ -3,9 +3,10 @@ DK = docker build
 DP = docker push $(HS)/
 
 default: basic analyzers assemblers basecallers correction monolithics trimmers
-.PHONY: default
+.PHONY: default basic tests analyzers assemblers basecallers correction monolithics trimmers
 
 tests: basic spades-test
+
 
 basic:
 	$(DK) -t $(HS)/basecase-basic basic/
@@ -17,7 +18,7 @@ basic:
 	
 assemblers: basic mhap sga spades
 
-spades: 
+spades: basic
 	$(DK) -t $(HS)/spades:latest assemblers/SPAdes/3.1/
 	$(DK) -t $(HS)/spades:3.1 assemblers/SPAdes/3.1/
 	$(DK) -t $(HS)/spades:3.0 assemblers/SPAdes/3.0/
@@ -25,11 +26,11 @@ spades:
 	$(DP)spades:3.0
 	$(DP)spades:latest
 	
-mhap:
+mhap: basic
 	$(DK) -t $(HS)/mhap:latest assemblers/MHAP/
 	$(DP)mhap:latest
 	
-sga:
+sga: basic
 	$(DK) -t $(HS)/sga:latest assemblers/SGA/
 	$(DP)sga:latest
 	
@@ -37,7 +38,7 @@ sga:
 	
 analyzers: basic circos 
 
-circos:
+circos: basic
 	#$(DK) -t $(HS)/circos:latest analyzers/Circos/
 	#@touch analyzers/Circos/.build
 
@@ -53,7 +54,7 @@ correction: basic
 
 monolithics: basic smrtportal snp-pipeline qiime
 
-smrtportal:
+smrtportal: basic
 	$(DK) -t $(HS)/smrtportal:latest monolithics/SMRTPortal/2.2.0
 	$(DK) -t $(HS)/smrtportal:2.2.0 monolithics/SMRTPortal/2.2.0
 	$(DP)smrtportal:latest
@@ -66,7 +67,7 @@ qiime: basic
 
 trimmers: basic fastx-trimmer scythe
 
-fastx-trimmer:
+fastx-trimmer: basic
 	$(DK) -t $(HS)/fastx-trimmer:latest trimmers/fastx-trimmer/0.0.14
 	$(DK) -t $(HS)/fastx-trimmer:0.0.14 trimmers/fastx-trimmer/0.0.14
 	$(DP)fastx-trimmer:latest
