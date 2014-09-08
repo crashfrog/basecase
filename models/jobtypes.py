@@ -22,6 +22,8 @@ the options argument list at 'options'
 	
 	prototype = JsonField('A JSON structure of parameter arguments and defaults for jobs of this type.', blank=True, default=([], {}))
 	
+	result_mask = JsonField(blank=True, default={})
+	
 	inputs = JsonField(default=lambda: {'patterns':['*fastq', '*fastq.gz'], 'directory':False})
 	shortwork = models.BooleanField("Shortwork job types don't farm out to workers but execute locally", default=False)
 	

@@ -6,6 +6,8 @@ import tempfile
 import json
 import uuid
 import monitor
+import re
+import subprocess
 
 from daemon import Daemon
 
@@ -30,12 +32,12 @@ class BCWorker(Daemon):
 			with open("prefs.json", 'w') as prefs_file:
 				json.dump(self.prefs, prefs_file, indent=2)
 
-	def api_get(self, endpoint, auth=self.auth):
+	def api_get(self, endpoint):
 		if endpoint[0] != '/':
 			endpoint = '/' + endpoint
 		return requests.get(self.prefs['api'] + endpoint, auth=auth)
 
-	def api_post(self, endpoint, auth=self.auth):
+	def api_post(self, endpoint, *args, **kwargs):
 		pass
 
 
@@ -51,8 +53,10 @@ class BCWorker(Daemon):
 				r = self.api_get('/jobs/next')
 				r.raise_for_status()
 				if r.status_code == requests.codes.ok:
+					stdoutput = ''
 					job = r.json()
 					#get the job from the Basecase private Docker repo
+					self.api_post(job['logging_url'], '({client_id}) *** Pulling ***'.format(**self.prefs))
 					dock.pull(job['workunit_url'], tag=job['id'])
 					#make the output folder
 					output = tempfile.mkdirtemp()
@@ -60,14 +64,37 @@ class BCWorker(Daemon):
 					m = dock.create_container(job['id'], volumes=(output, ))
 					dock.start(workunit, binds={job['output_dir']:{'bind':output, 'ro':False}})
 					mon = monitor.BCWorkerMonitor(job, workunit, self.prefs)
+					self.api_post(job['logging_url'], '({client_id}) *** Starting ***'.format(**self.prefs))
 					mon.start()
 					#wait for completion
 					for line in dock.logs(workunit, stream=True):
+						stdoutput += line
 						self.api_post(job['logging_url'], line)
 					#dock.wait(workunit)
 					mon.quit()
 					mon.join()
+					#search stdout
+					with open(os.path.join(output, 'stdout.log'), 'w') as stdout_file:
+						stdout_file.write(stdoutput)
+						
+					results = dict()
+					for pattern_name, re_pattern in job['result_mask'].items():
+						result = re.findall(re_pattern, stdoutput)
+						results[pattern_name] = result
+					
+					with open(os.path.join(output, 'results.json'), 'w') as results_json:
+						json.dump(results, results_json)
+					
 					#upload the output files
+					self.api_post(job['logging_url'], '({client_id}) *** Finishing ***'.format(**self.prefs))
+					for item in os.listdir(output):
+						sum = subprocess.check_output('md5sum', os.path.join(output, item))[:32]
+						with open(os.path.join(output, item), 'rb') as f:
+							self.api_post(job['logging_url'], '({client_id}) *** Uploading {} ***'.format(item, **self.prefs))
+							self.api_post(job['files_url'], files={'file':f, 'checksum':sum})
+							
+					#set job as finished
+					self.api_post(job['finish_url'])
 
 					#tear down the completed image
 					dock.remove_container(workunit)

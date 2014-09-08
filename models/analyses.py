@@ -1,8 +1,33 @@
+from models import Walkable
+from django.core.urlresolvers import reverse
+from django.db import models
+
+class SeparatedValuesField(models.TextField):
+    __metaclass__ = models.SubfieldBase
+
+    def __init__(self, *args, **kwargs):
+        self.token = kwargs.pop('token', ',')
+        super(SeparatedValuesField, self).__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        if not value: return
+        if isinstance(value, list):
+            return value
+        return value.split(self.token)
+
+    def get_db_prep_value(self, value):
+        if not value: return
+        assert(isinstance(value, list) or isinstance(value, tuple))
+        return self.token.join([unicode(s) for s in value])
+
+    def value_to_string(self, obj):
+        value = self._get_val_from_obj(obj)
+        return self.get_db_prep_value(value)
 
 class AnalysisStep(models.Model, Walkable):
 	"Analysis workflow default object."
 	job_type = models.ForeignKey(JobType)
-	predicate = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False)
+	predicate = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False, through=models.FunctorBind)
 	defaults = JsonField(blank=True)
 	
 	def spawn(self, status='pending', **kwargs):
@@ -37,6 +62,7 @@ class Analysis(models.Model):
 	"An analysis is a handle for a chain of jobs."
 	name = models.CharField('A short name for this analysis workflow.', max_length=255)
 	description = models.TextField('An explanitory description of this analysis workflow.')
+	tags = SeparatedValuesField('Comma-delimited list of tags associated with this analysis, used with the routing system')
 	analysis_head = models.OneToOneField(AnalysisStep)
 	
 	def get_args(self):
@@ -62,13 +88,15 @@ class Analysis(models.Model):
 	def aggregate(jobs):
 		"Class method to aggregate multiple docker aggregations into a single one."
 		pass
-
+	
+	@property
 	def json(self):
 		from collections import OrderedDict
 		struct = {
 			'id':self.pk,
 			'name':self.name,
-			'description':self.description
+			'description':self.description,
+			'bind_endpoint':reverse
 		}
 
 		argsdict = OrderedDict()

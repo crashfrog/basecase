@@ -1,3 +1,6 @@
+from models import JobType, Functor
+from django.core.urlresolvers import reverse
+
 class Walkable(object):
 	"Abstract base class mixin for acyclic directed graphs and trees"
 	
@@ -35,11 +38,14 @@ class Job(models.Model, Walkable):
 	parameters = JsonField(blank=True)
 	#result = JsonField(blank=True)
 	
-	predicates = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False) #this is a directed acyclic graph
+	predicates = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False, through=models.Functor) #this is a directed acyclic graph
 	resources = models.ManyToManyField('Resource')
+	
+	products = models.ManyToManyField('Resource', db_table='job_resource_products')
 	
 	#provenance = models.TextField(blank=True, null=True)
 	
+	added = models.DateTimeField(autonow=True)
 	started = models.DateTimeField(null=True, blank=True)
 	finished = models.DateTimeField(null=True, blank=True)
 	
@@ -59,7 +65,8 @@ class Job(models.Model, Walkable):
 		if self.predicates:
 			return self.predicates[0].chain_id()
 		return self.pk
-		
+	
+	@property	
 	def is_ready(self):
 		if self.predicates:
 			return (all([lambda p: 'finished' in p.status for p in self.predicates]) and ('pending' in self.status))
@@ -95,7 +102,7 @@ class Job(models.Model, Walkable):
 		if not os.path.exists(filedir):
 			os.mkdir(filedir)
 			
-		resource = self.resources.create(real_location=filedir, temporary=temporary)
+		resource = self.products.create(real_location=filedir, temporary=temporary)
 		with open(os.path.join(filedir, filename), 'rb') as resource_file:
 			sum = hashlib.md5()
 			for block in stream_handle.read(1048576):
@@ -106,45 +113,35 @@ class Job(models.Model, Walkable):
 		else:
 			resource.checksum = sum.hexdigest()
 			
+	def finish(self):
+		self.status = 'finished'
+		for subsequent in self.subsequents:
+			Functor.objects.get(entry=self, exit=subsequent)()
+		self.save()
+			
+		
+			
 	def build_workunit(self):
+		import tarfile
+		import tempfile
+		import subprocess
+		import os, os.path
+		from django.template.loader import render_to_string
+		import docker
+		import json
+
+		context = {'job':self,
+				   'job_type',self.job_type,
+				   'config':basecase.settings}
 		if not self.job_type.shortwork:
-			import tarfile
-			import tempfile
-			import subprocess
-			import os, os.path
-			from django.template.loader import render_to_string
-			import docker
-			import json
+			
 		
 			stage = os.path.join(basecase.settings.DEFAULT_PATH_ROOT, 'workunits', self.chain_id(), self.pk)
-	# 		try:
-	# 			temparchive = tempfile.TemporaryFile(dir='/run/shm')
-	# 		except:
-	# 			temparchive = tempfile.TemporaryFile()
-	# 			
-	# 		with tarfile.open(fileobj=temparchive, mode='w:bz2') as workunit:
-	# 			for resource in self.job_type.binaries:
-	# 				workunit.add(resource.real_location, 
-	# 							 arcname=os.path.join('binaries', os.path.split(resource.real_location)[0]))
-	# 			for resource in self.resources:
-	# 				workunit.add(resource.real_location, 
-	# 							 arcname=os.path.join('resources', os.path.split(resource.real_location)[0]))
-	# 		temparchive.flush()
-	# 		with open(os.path.join(default_workunit_staging, 'job_{}.sh'.format(self.pk)), 'w') as workunit:
-	# 			commands = list()
-	# 			#parse job and job prototype into workunit shell#
-	# 			workunit.write(render_to_string('workunit.sh', {'commands':commands}))
-	# 		subprocess.check_call('cat {} >> {}/job_{}.sh'.format(temparchive.name, default_workunit_staging, self.pk))
-	# 		temparchive.close()
-
-	#		do this with Docker instead
 
 			if not os.path.exists(stage):
 				os.makedirs(stage)
 			
-			context = {'job':self,
-					   'job_type',self.job_type,
-					   'config':basecase.settings}
+			
 			dockerfile_path = os.path.join(stage, 'Dockerfile')
 			with open(dockerfile_path, 'r') as dockerfile:
 				dockerfile.write(render_to_string('build_template.dockerfile', context))
@@ -169,8 +166,8 @@ class Job(models.Model, Walkable):
 			else:
 				self.status = 'ready'
 		else:
-			#do the shortwork, whatever that is, usually some kind of fan-in or out
-			
+			#do the shortwork, whatever that is
+			subprocess.check_call(render_to_string('build_template.dockerfile', context), shell=True)
 			self.status = 'finished'
 			self.save()
 
@@ -178,7 +175,7 @@ class Job(models.Model, Walkable):
 		#return 'basecase' + basecase.settings.API + 'job/{}/{}'.format(self.pk, subpath)
 		return reverse('job_endpoint', {'job_id':self.pk})
 
-
+	@property
 	def json(self):
 		return {
 			'id':self.pk,
@@ -187,8 +184,11 @@ class Job(models.Model, Walkable):
 			'status':self.status,
 			'workunit_url':workunit,
 			'output_dir':basecase.settings.DEFAULT_OUTPUT_DIR,
-			'datapoints':reverse("job_datapoints_endpoint", {'job_id':self.pk}),
-			'logging_url':reverse("log_endpoint", {'job_id':self.pk})
+			'datapoint_url':reverse("job_datapoints_endpoint", {'job_id':self.pk}),
+			'result_mask':self.job_type.result_mask,
+			'logging_url':reverse("log_endpoint", {'job_id':self.pk}),
+			'files_url':reverse("files_endpoint", {'job_id':self.pk}),
+			'finish_url':reverse("finish_endpoint", {'job_id':self.pk}),
 		}
 			
 class DataPoint(models.Model):

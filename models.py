@@ -1,6 +1,7 @@
 from django.db import models
-from events.models import JsonField
-from django.core.urlresolvers import reverse
+#from events.models import JsonField
+
+
 
 import basecase.settings
 
