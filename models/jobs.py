@@ -114,9 +114,13 @@ class Job(models.Model, Walkable):
 			resource.checksum = sum.hexdigest()
 			
 	def finish(self):
+		'Job-to-job binding behavior, usually runs async so error handling has to be logged'
 		self.status = 'finished'
-		for subsequent in self.subsequents:
-			Functor.objects.get(entry=self, exit=subsequent)()
+		try:
+			for subsequent in self.subsequents:
+				Functor.objects.get(entry=self, exit=subsequent)()
+		except Exception:
+			
 		self.save()
 			
 		
@@ -182,6 +186,9 @@ class Job(models.Model, Walkable):
 			'analysis':self.analysis.get_absolute_url(),
 			'name':self.job_type.name,
 			'status':self.status,
+			'date_added':self.added,
+			'date_started':self.started,
+			'date_finished':self.finished,
 			'workunit_url':workunit,
 			'output_dir':basecase.settings.DEFAULT_OUTPUT_DIR,
 			'datapoint_url':reverse("job_datapoints_endpoint", {'job_id':self.pk}),

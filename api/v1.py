@@ -6,6 +6,7 @@ import urls
 import basecase.settings
 from django.http import HttpResponse
 from basecase import models
+import json
 
 urls.urlpatterns += patterns( #monkeypatch in the API endpoint
 	url('^{}'.format(basecase.settings.API), include('basecase.api'))
@@ -57,8 +58,56 @@ def jobtypes(request, jobtype_id=None):
 	elif:
 		pass
 
-def jobs(request, job_id):
-	pass
+def jobs(request, job_id=None):
+	if request.method == 'GET':
+		if job_id:
+			return HttpResponse(models.Job.objects.get(pk=job_id).json)
+		else:
+			start = request.GET.get('start_position', 0)
+			number = request.GET.get('number_of_items', 100)
+			order_by = request.GET.get('order_by', 'added')
+			sort = request.GET.get('sort', 'ascending')
+			if 'descending' in sort:
+				sort = '-'
+			elif 'ascending' in sort:
+				sort = ''
+			else:
+				return HttpResponseBadRequest("'sort' must be 'ascending' or 'descending'")
+			order_by = sort + order_by
+			try:
+				end = int(start) + int(number)
+				return HttpResponse(json.dumps([j.json for j in models.Jobs.objects.all().order_by(order_by)][start:end]))
+			except TypeError:
+				return HttpResponseBadRequest("Invalid parameters for start_position or number_of_items")
+			
+			
+	elif request.method == 'POST':
+		try:
+			return HttpRequest(status=501) #Not Yet Implemented
+		except (KeyError, ValueError):
+			return HttpResponseBadRequest()
+	elif request.method == 'PUT':
+		try:
+			return HttpRequest(status=501) #Not Yet Implemented
+		except (KeyError, ValueError):
+			return HttpResponseBadRequest()
+	elif request.method == 'DELETE':
+		try:
+			return HttpRequest(status=501) #Not Yet Implemented
+		except (KeyError, ValueError):
+			return HttpResponseBadRequest()
+	else:
+		return HttpResponsNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])
+		
+def logs(job_id):
+	if request.method == 'GET':
+		job = models.Job.objects.get(pk=job_id)
+		return HttpRequest(job.log_text)
+	elif request.method == 'POST':
+		job = models.Job.objects.get(pk=job_id)
+		job.log(request.POST['message'])
+	else:
+		return HttpResponseNotAllowed(['GET', 'POST'])
 	
 def next(request):
 	if request.method == 'GET':
@@ -70,10 +119,12 @@ def next(request):
 	return HttpResponsNotAllowed(['GET',])
 
 def job_files(request, job_id):
-	pass
+	return HttpRequest(status=501) #Not Yet Implemented
 	
 def job_finish(request, job_id):
-	pass
+	import threading #needs to run asynchronously
+	job = models.Job.objects.get(pk=job_id)
+	threading.Thread(lambda: job.finish()).start()
 
 def datapoints(request, job_id, datapoint_id=None, format=None):
 	pass
