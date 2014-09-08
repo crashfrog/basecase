@@ -2,8 +2,13 @@ import basecase.settings
 
 class JobType(models.Model):
 	"Job type metamodel"
+	
+	class Meta:
+		unique_together = ('name', 'version')
+		ordering = ('name', '-version')
 
-	name = models.CharField(max_length=255, unique=True)
+	name = models.CharField(max_length=255)
+	version = models.CharField(max_length=12)
 	description = models.TextField(blank=True, null=False)
 	citation = models.TextField(blank=True, null=True)
 	
@@ -26,6 +31,7 @@ the options argument list at 'options'
 	
 	inputs = JsonField(default=lambda: {'patterns':['*fastq', '*fastq.gz'], 'directory':False})
 	shortwork = models.BooleanField("Shortwork job types don't farm out to workers but execute locally", default=False)
+	
 	
 	def __init__(self, *args, **kwargs):
 		"Method override to capture changes on prototype field."
