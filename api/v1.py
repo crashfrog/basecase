@@ -127,16 +127,31 @@ def job_finish(request, job_id):
 	threading.Thread(lambda: job.finish()).start()
 
 def datapoints(request, job_id, datapoint_id=None, format=None):
-	pass
+	return HttpResponse(status=501) #Not Yet Implemented
+	if request.method == 'GET':
+
+	elif request.method == 'PUT':
+
+	else:
+		return HttpResponseNotAllowed(['GET', 'PUT'])
 
 def jobtypes(request, jobtype_id=None):
-	pass
+	return HttpRequest(status=501) #Not Yet Implemented
 
 def analyses(request, analysis_id=None):
-	pass
+	return HttpRequest(status=501) #Not Yet Implemented
 	
 def steps(request, step_id):
-	pass
+	return HttpRequest(status=501) #Not Yet Implemented
 	
 def binds(request, entry, exit):
-	pass
+	if request.method == 'GET':
+		return HttpRequest(status=501) #Not Yet Implemented
+	elif request.method == 'POST':
+		return HttpRequest(status=501) #Not Yet Implemented
+	elif request.method == 'PUT':
+		return HttpRequest(status=501) #Not Yet Implemented
+	elif request.method == 'DELETE':
+		return HttpRequest(status=501) #Not Yet Implemented
+	else:
+		return HttpResponseNotAllowed(['GET', 'PUT', 'POST', 'DELETE'])
