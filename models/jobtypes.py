@@ -9,6 +9,7 @@ class JobType(models.Model):
 
 	name = models.CharField(max_length=255)
 	version = models.CharField(max_length=12)
+	category = models.CharField(max_length=255)
 	description = models.TextField(blank=True, null=False)
 	citation = models.TextField(blank=True, null=True)
 	
