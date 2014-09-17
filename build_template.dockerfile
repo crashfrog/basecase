@@ -4,14 +4,14 @@
 FROM {{ job_type.image }}
 MAINTAINER {{ config.INSTANCE }}, {{ config.ADMIN_EMAIL }}
 
-RUN mkdir {{ config.default_input_dir }}
+RUN mkdir {{ config.DEFAULT_INPUT_DIR }}
 
 {% for resource in job.resources %}
-COPY {{ resource.real_location }} {{ config.default_input_dir }}
+COPY {{ resource.real_location }} {{ config.DEFAULT_INPUT_DIR }}
 {% endfor %}
 
 RUN apt-get clean
 RUN apt-get autoclean
 
-WORKDIR {{ config.default_input_dir }}
+WORKDIR {{ config.DEFAULT_INPUT_DIR }}
 CMD {{ job.command }}

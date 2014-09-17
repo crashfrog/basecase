@@ -150,6 +150,7 @@ def job_finish(request, job_id):
 	threading.Thread(lambda: job.finish()).start()
 
 def datapoints(request, job_id, datapoint_id=None, format=None):
+
 	if request.method == 'GET':
 		try:
 			return HttpResponse(status=501) #Not Yet Implemented
@@ -200,9 +201,9 @@ def analyses(request, analysis_id=None):
 			return HttpResponseBadRequest()
 	else:
 		return HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])
-	
+
 def steps(request, step_id):
-	pass
+	return HttpRequest(status=501) #Not Yet Implemented
 	
 def binds(request, entry, exit):
 	if request.method == 'GET':
