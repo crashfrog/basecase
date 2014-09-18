@@ -21,31 +21,29 @@ urlpatterns = patterns(
 	url(r"config/(?P<worker_conf>/$", config)
 
 	url(r"jobs/$", JobsView.as_view()),
-	url(r"jobs/id/(?P<id>\S+)/$", jobs, name="job_endpoint"),
+	url(r"jobs/id/(?P<id>\S+)/$", JobsView.as_view(), name="job_endpoint"),
 	url(r"jobs/id/(?P<id>\S+)/files/$", job_files, name="job_files_endpoint"),
 
 	url(r"jobs/next/$", get_next),
 
-	url(r"jobs/id/(?P<id>\S+)/datapoints/$", datapoints, name="job_datapoints_endpoint"),
-	url(r"jobs/id/(?P<id>)\S+)/datapoints/(?P<datapoint_id>\S+)/$", datapoints, name="datapoint_endpoint"),
-	url(r"jobs/id/(?P<id>)\S+)/datapoints/(?P<datapoint_id>\S+)/(?P<format>\S+)/$", datapoints)
+	url(r"jobs/id/(?P<job_id>\S+)/datapoints/$", datapoints, name="job_datapoints_endpoint"),
+	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", datapoints, name="datapoint_endpoint"),
+	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", datapoints)
 
 	url(r"jobs/id/(?P<id>)\S+)/logs/$", logs, name="log_endpoint"),
 	
 	url(r"jobs/id/(?P<id>)\S+)/finish/$", job_finish, name="finish_endpoint"),
 
-	url(r"jobtypes/$", jobtypes),
-	url(r"jobtypes/id/(?P<id>)\S+)/$", jobtypes, name="jobtype_endpoint"),
-	url(r"jobtypes/id/(?P<id>)\S+)/jobs", jobs_list),
+	url(r"jobtypes/$", JobTypesView.as_view()),
+	url(r"jobtypes/id/(?P<id>)\S+)/$", JobTypesView.as_view(), name="jobtype_endpoint"),
+	url(r"jobtypes/id/(?P<id>)\S+)/jobs", JobsView.as_view()),
 
 	url(r"analyses/$", analyses),
 	url(r"analyses/id/(?P<id>)\S+)/$", analyses, name="analyses_endpoint"),
 	
-	url(r"analyses/step/id/(?P<id>\S+)", analysis_steps, name="steps_endpoint"),
+	url(r"analyses/step/id/(?P<id>\S+)", AnalysisStepView.as_view(), name="steps_endpoint"),
 	url(r"analyses/step/id/(?P<id>\S+)/bind/(?P<exit_id>\S+)/$", binds, name="bind_endpoint"),
 	
-	
-
 	)
 	
 def BasecaseObjectView(View, DeletionMixin, SingleObjectMixin):
@@ -70,56 +68,25 @@ def config(request, worker_conf="BCWorker"):
 			return HttpResponseNotFound()
 	return HttpResponseNotAllowed(['GET',])
 
-def jobtypes(request, jobtype_id=None):
-	if jobtype_id:
-		pass
-	elif:
-		pass
+class JobTypesView(BasecaseObjectView):
 
-# def jobs(request, job_id=None):
-# 	if request.method == 'GET':
-# 		if job_id:
-# 			return HttpResponse(models.Job.objects.get(pk=job_id).json)
-# 		else:
-# 			start = request.GET.get('start_position', 0)
-# 			number = request.GET.get('number_of_items', 100)
-# 			order_by = request.GET.get('order_by', 'added')
-# 			sort = request.GET.get('sort', 'ascending')
-# 			if 'descending' in sort:
-# 				sort = '-'
-# 			elif 'ascending' in sort:
-# 				sort = ''
-# 			else:
-# 				return HttpResponseBadRequest("'sort' must be 'ascending' or 'descending'")
-# 			order_by = sort + order_by
-# 			try:
-# 				end = int(start) + int(number)
-# 				return HttpResponse(json.dumps([j.json for j in models.Jobs.objects.all().order_by(order_by)][start:end]))
-# 			except TypeError:
-# 				return HttpResponseBadRequest("Invalid parameters for start_position or number_of_items")
-# 			
-# 			
-# 	elif request.method == 'POST':
-# 		try:
-# 			return HttpResponse(status=501) #Not Yet Implemented
-# 		except (KeyError, ValueError):
-# 			return HttpResponseBadRequest()
-# 	elif request.method == 'PUT':
-# 		try:
-# 			return HttpResponse(status=501) #Not Yet Implemented
-# 		except (KeyError, ValueError):
-# 			return HttpResponseBadRequest()
-# 	elif request.method == 'DELETE':
-# 		try:
-# 			return HttpResponse(status=501) #Not Yet Implemented
-# 		except (KeyError, ValueError):
-# 			return HttpResponseBadRequest()
-# 	else:
-# 		return HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])
+	model = models.JobType
 
 class JobsView(BasecaseObjectView):
 	 
-	 model = models.Job
+	model = models.Job
+	 
+class AnalysisView(BasecaseObjectView):
+	
+	model = models.Analysis
+	
+class AnalysisStepView(BasecaseObjectView):
+
+	model = models.AnalysisStep
+	
+class BindsView(BasecaseObjectView):
+
+	
 
 		
 def logs(job_id):
@@ -149,7 +116,7 @@ def job_finish(request, job_id):
 	job = models.Job.objects.get(pk=job_id)
 	threading.Thread(lambda: job.finish()).start()
 
-def datapoints(request, job_id, datapoint_id=None, format=None):
+def datapoints(request, job_id, id=None, format=None):
 
 	if request.method == 'GET':
 		try:
@@ -173,37 +140,8 @@ def datapoints(request, job_id, datapoint_id=None, format=None):
 			return HttpResponseBadRequest()
 	else:
 		return HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])
+		
 
-class JobtypesView(BasecaseObjectView):
-
-	model = models.JobType
-
-def analyses(request, analysis_id=None):
-	if request.method == 'GET':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'POST':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'PUT':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'DELETE':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	else:
-		return HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])
-
-def steps(request, step_id):
-	return HttpRequest(status=501) #Not Yet Implemented
 	
 def binds(request, entry, exit):
 	if request.method == 'GET':

@@ -1,6 +1,8 @@
 from models import JobType, Functor
 from django.core.urlresolvers import reverse
 
+from rest_framework import serializers
+
 class Walkable(object):
 	"Abstract base class mixin for acyclic directed graphs and trees"
 	
@@ -178,25 +180,63 @@ class Job(models.Model, Walkable):
 	def get_absolute_url(self, subpath=''):
 		#return 'basecase' + basecase.settings.API + 'job/{}/{}'.format(self.pk, subpath)
 		return reverse('job_endpoint', {'job_id':self.pk})
-
+		
+	@property	
+	def result_mask(self):
+		return self.job_type.result_mask
+		
 	@property
-	def json(self):
-		return {
-			'id':self.pk,
-			'analysis':self.analysis.get_absolute_url(),
-			'name':self.job_type.name,
-			'status':self.status,
-			'date_added':self.added,
-			'date_started':self.started,
-			'date_finished':self.finished,
-			'workunit_url':workunit,
-			'output_dir':basecase.settings.DEFAULT_OUTPUT_DIR,
-			'datapoint_url':reverse("job_datapoints_endpoint", {'job_id':self.pk}),
-			'result_mask':self.job_type.result_mask,
-			'logging_url':reverse("log_endpoint", {'job_id':self.pk}),
-			'files_url':reverse("files_endpoint", {'job_id':self.pk}),
-			'finish_url':reverse("finish_endpoint", {'job_id':self.pk}),
-		}
+	def logging_url(self):
+		return reverse("log_endpoint", {'id':self.pk})
+		
+	@property
+	def files_url(self):
+		return reverse("files_endpoint", {'id':self.pk}),
+	
+	@property
+	def finish_url(self):
+		return reverse("finish_endpoint", {'job_id':self.pk})
+		
+# 	@property
+# 	def json(self):
+# 		return {
+# 			'id':self.pk,
+# 			'analysis':self.analysis.get_absolute_url(),
+# 			'name':self.job_type.name,
+# 			'status':self.status,
+# 			'date_added':self.added,
+# 			'date_started':self.started,
+# 			'date_finished':self.finished,
+# 			'workunit_url':workunit,
+# 			'output_dir':basecase.settings.DEFAULT_OUTPUT_DIR,
+# 			'datapoint_url':reverse("job_datapoints_endpoint", {'job_id':self.pk}),
+# 			'result_mask':self.job_type.result_mask,
+# 			'logging_url':reverse("log_endpoint", {'job_id':self.pk}),
+# 			'files_url':reverse("files_endpoint", {'job_id':self.pk}),
+# 			'finish_url':reverse("finish_endpoint", {'job_id':self.pk}),
+# 		}
+		
+class JobSerializer(serializers.HyperlinkedModelSerializer):
+
+
+	output_dir = basecase.settings.DEFAULT_OUTPUT_DIR
+	url_field_name = 'job_url'
+
+	class Meta:
+		model = Job
+		fields = ('status', )
+		read_only_fields = ('id', 
+							'analysis', 
+							'name',  
+							'added', 
+							'started', 
+							'finished', 
+							'workunit', 
+							'logging_url',
+							'files_url',
+							'finish_url',
+							'predicates',
+							)
 			
 class DataPoint(models.Model):
 	"CPU, memory, disk usage monitoring data point, created by remote worker threads for job-resource analysis."
@@ -207,20 +247,26 @@ class DataPoint(models.Model):
 	disk_usage = models.IntegerField("Usage of temp dir in bytes", default=0)
 	message = models.CharField(max_length=255, null=True, blank=True)
 
-	def json(self):
-		return {
-			'id':self.pk,
-			'job':self.job.get_absolute_url(),
-			'timepoint'self.timepoint,
-			'cpu':self.cpu,
-			'memory':self.memory,
-			'disk_usage':self.disk_usage,
-			'message':self.message,
-			'formats':[]
-		}
+# 	def json(self):
+# 		return {
+# 			'id':self.pk,
+# 			'job':self.job.get_absolute_url(),
+# 			'timepoint'self.timepoint,
+# 			'cpu':self.cpu,
+# 			'memory':self.memory,
+# 			'disk_usage':self.disk_usage,
+# 			'message':self.message,
+# 			'formats':[]
+# 		}
 	def get_absolute_url(self):
 		#return 'basecase' + basecase.settings.API + 'datapoint/{}'
 		return reverse('datapoint_endpoint', {'job_id':self.job.pk, 'datapoint_id':self.pk})
+		
+class DataPointSerializer(serializers.HyperlinkedModelSerializer):
+	class Meta:
+		model = DataPoint
+		fields = ('message', 'timepoint', 'cpu', 'memory', 'disk_usage')
+		read_only_fields = ('id', 'formats', 'job')
 	
 class Resource(models.Model):
 	
