@@ -3,6 +3,7 @@ from jobs import Job, Resource
 from analyses import AnalysisStep
 import fnmatch
 import os.path
+from rest_framework import serializer
 
 class FunctorType(models.Model):
 	
@@ -28,6 +29,11 @@ class FunctorBind(models.Model):
 	def unbind(entry, exit):
 		binding = FunctorBind.objects.get(entry=entry, exit=exit)
 		binding.delete()
+		
+class FunctorBindSerializer(serializer.HyperlinkedModelSerializer):
+	
+	class Meta:
+		fields = ('functor_type', 'entry', 'exit')
 		
 		
 class Functor(models.Model):

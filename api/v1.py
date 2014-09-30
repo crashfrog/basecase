@@ -26,9 +26,9 @@ urlpatterns = patterns(
 
 	url(r"jobs/next/$", get_next),
 
-	url(r"jobs/id/(?P<job_id>\S+)/datapoints/$", datapoints, name="job_datapoints_endpoint"),
-	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", datapoints, name="datapoint_endpoint"),
-	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", datapoints)
+	url(r"jobs/id/(?P<job_id>\S+)/datapoints/$", DataPointsView.as_view(), name="job_datapoints_endpoint"),
+	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", DataPointsView.as_view(), name="datapoint_endpoint"),
+	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", DataPointsView.as_view())
 
 	url(r"jobs/id/(?P<id>)\S+)/logs/$", logs, name="log_endpoint"),
 	
@@ -38,11 +38,11 @@ urlpatterns = patterns(
 	url(r"jobtypes/id/(?P<id>)\S+)/$", JobTypesView.as_view(), name="jobtype_endpoint"),
 	url(r"jobtypes/id/(?P<id>)\S+)/jobs", JobsView.as_view()),
 
-	url(r"analyses/$", analyses),
-	url(r"analyses/id/(?P<id>)\S+)/$", analyses, name="analyses_endpoint"),
+	url(r"analyses/$", AnalysisView.as_view()),
+	url(r"analyses/id/(?P<id>)\S+)/$", AnalysisView.as_view(), name="analyses_endpoint"),
 	
 	url(r"analyses/step/id/(?P<id>\S+)", AnalysisStepView.as_view(), name="steps_endpoint"),
-	url(r"analyses/step/id/(?P<id>\S+)/bind/(?P<exit_id>\S+)/$", binds, name="bind_endpoint"),
+	url(r"analyses/step/id/(?P<id>\S+)/bind/(?P<exit_id>\S+)/$", BindsView.as_view(), name="bind_endpoint"),
 	
 	)
 	
@@ -72,8 +72,9 @@ class JobTypesView(BasecaseObjectView):
 
 	model = models.JobType
 
-class JobsView(BasecaseObjectView):
-	 
+class JobsView(BasecaseObjectView, ListModelMixin):
+	
+	queryset = models.Job.objects.all().order_by('-added')
 	model = models.Job
 	 
 class AnalysisView(BasecaseObjectView):
@@ -86,7 +87,12 @@ class AnalysisStepView(BasecaseObjectView):
 	
 class BindsView(BasecaseObjectView):
 
+	model = models.FunctorBind
 	
+class DataPointsView(BasecaseObjectView, ListModelMixin):
+	
+	model = models.DataPoint
+	queryset = models.DataPoint.objects.filter(job=job_id)
 
 		
 def logs(job_id):
@@ -116,53 +122,53 @@ def job_finish(request, job_id):
 	job = models.Job.objects.get(pk=job_id)
 	threading.Thread(lambda: job.finish()).start()
 
-def datapoints(request, job_id, id=None, format=None):
-
+# def datapoints(request, job_id, id=None, format=None):
+# 
 	if request.method == 'GET':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'POST':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'PUT':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'DELETE':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	else:
-		return HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])
-		
-
-	
-def binds(request, entry, exit):
-	if request.method == 'GET':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'POST':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'PUT':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	elif request.method == 'DELETE':
-		try:
-			return HttpResponse(status=501) #Not Yet Implemented
-		except (KeyError, ValueError):
-			return HttpResponseBadRequest()
-	else:
-		return HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])
+# 		try:
+# 			return HttpResponse(status=501) #Not Yet Implemented
+# 		except (KeyError, ValueError):
+# 			return HttpResponseBadRequest()
+# 	elif request.method == 'POST':
+# 		try:
+# 			return HttpResponse(status=501) #Not Yet Implemented
+# 		except (KeyError, ValueError):
+# 			return HttpResponseBadRequest()
+# 	elif request.method == 'PUT':
+# 		try:
+# 			return HttpResponse(status=501) #Not Yet Implemented
+# 		except (KeyError, ValueError):
+# 			return HttpResponseBadRequest()
+# 	elif request.method == 'DELETE':
+# 		try:
+# 			return HttpResponse(status=501) #Not Yet Implemented
+# 		except (KeyError, ValueError):
+# 			return HttpResponseBadRequest()
+# 	else:
+# 		return HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])
+# 		
+# 
+# 	
+# def binds(request, entry, exit):
+# 	if request.method == 'GET':
+# 		try:
+# 			return HttpResponse(status=501) #Not Yet Implemented
+# 		except (KeyError, ValueError):
+# 			return HttpResponseBadRequest()
+# 	elif request.method == 'POST':
+# 		try:
+# 			return HttpResponse(status=501) #Not Yet Implemented
+# 		except (KeyError, ValueError):
+# 			return HttpResponseBadRequest()
+# 	elif request.method == 'PUT':
+# 		try:
+# 			return HttpResponse(status=501) #Not Yet Implemented
+# 		except (KeyError, ValueError):
+# 			return HttpResponseBadRequest()
+# 	elif request.method == 'DELETE':
+# 		try:
+# 			return HttpResponse(status=501) #Not Yet Implemented
+# 		except (KeyError, ValueError):
+# 			return HttpResponseBadRequest()
+# 	else:
+# 		return HttpResponseNotAllowed(['GET', 'POST', 'PUT', 'DELETE'])

@@ -274,6 +274,7 @@ class Resource(models.Model):
 	#virtual_location = models.TextField(null=True, blank=True)
 	temporary = models.BooleanField('Whether this resource should be deleted after chain is complete.', default=False)
 	checksum = models.CharField(max_length=32)
+	resource_type = models.CharField(max_length=32, choices=('input', 'output'), default='input')
 	
 	def delete(self, *a, **k):
 		import shutil, os, os.path
@@ -286,3 +287,12 @@ class Resource(models.Model):
 			except:
 				pass
 		super(models.Model, self).__del__(self)
+		
+class ResourceSerializer(serializers.HyperlinkedModelSerializer):
+
+	content = None
+
+	class Meta:
+		model = Resource
+		fields = ('checksum', 'temporary', 'resource_type', )
+		read_only_fields = ('id', 'jobs', )
