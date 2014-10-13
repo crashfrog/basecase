@@ -18,8 +18,7 @@ urls.urlpatterns += patterns( #monkeypatch in the API endpoint
 
 urlpatterns = patterns(
 
-	url(r"config/(?P<worker_conf>/$", config)
-
+	url(r"config/(?P<worker_conf>)/$", config),
 	url(r"jobs/$", JobsView.as_view()),
 	url(r"jobs/id/(?P<id>\S+)/$", JobsView.as_view(), name="job_endpoint"),
 	url(r"jobs/id/(?P<id>\S+)/files/$", job_files, name="job_files_endpoint"),
@@ -124,7 +123,7 @@ def job_finish(request, job_id):
 
 # def datapoints(request, job_id, id=None, format=None):
 # 
-	if request.method == 'GET':
+#	if request.method == 'GET':
 # 		try:
 # 			return HttpResponse(status=501) #Not Yet Implemented
 # 		except (KeyError, ValueError):
