@@ -3,7 +3,8 @@ from jobs import Job, Resource
 from analyses import AnalysisStep
 import fnmatch
 import os.path
-from rest_framework import serializer
+from rest_framework import serializers
+from bc_jsonfield import JsonField
 
 class FunctorType(models.Model):
 	
@@ -13,8 +14,8 @@ class FunctorType(models.Model):
 class FunctorBind(models.Model):
 
 	functor_type = models.ForeignKey(FunctorType)
-	entry = models.ForeignKey(AnalysisStep)
-	exit = models.ForeignKey(AnalysisStep)
+	entry = models.ForeignKey(AnalysisStep, related_name='binds_in_through')
+	exit = models.ForeignKey(AnalysisStep, related_name='binds_out_through')
 	
 	kwargs = JsonField()
 	
@@ -30,7 +31,7 @@ class FunctorBind(models.Model):
 		binding = FunctorBind.objects.get(entry=entry, exit=exit)
 		binding.delete()
 		
-class FunctorBindSerializer(serializer.HyperlinkedModelSerializer):
+class FunctorBindSerializer(serializers.HyperlinkedModelSerializer):
 	
 	class Meta:
 		fields = ('functor_type', 'entry', 'exit')
@@ -38,8 +39,8 @@ class FunctorBindSerializer(serializer.HyperlinkedModelSerializer):
 		
 class Functor(models.Model):
 
-	entry = models.ForeignKey(Job)
-	exit = models.ForeignKey(Job)
+	entry = models.ForeignKey(Job, related_name='binds_out_through')
+	exit = models.ForeignKey(Job, related_name='binds_in_through')
 	
 	functor_type = models.ForeignKey(FunctorType)
 	kwargs = JsonField()
@@ -52,7 +53,7 @@ class Functor(models.Model):
 	def propagating(self):
 		return getattr(self.module, self.functor_type.class_name)().propagate
 	
-	def__call__(self):
+	def __call__(self):
 		if self.exit.job_type.inputs['directory']:
 			#pass on all the outputs that are directories
 			resources = [models.Resource.objects.get(real_location=f) for f in filter(lambda d: os.path.isdir(d), self.entry.outputs)]
@@ -85,7 +86,7 @@ class Fanout():
 		for r in resources[:by]:
 			exit.resources.add(r)
 			exit.save()
-		for resource_tuple in itertools.izip_longest(*[iter(resources[by:)]*by): #group resources into n-tuples where n='by', like '1 by 1', '2 by 2', etc
+		for resource_tuple in itertools.izip_longest(*[iter(resources[by:])]*by): #group resources into n-tuples where n='by', like '1 by 1', '2 by 2', etc
 			exit.pk = None #duplicating the job object
 			exit.resources.clear()
 			for resource in resource_tuple:

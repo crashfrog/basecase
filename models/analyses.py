@@ -1,6 +1,7 @@
-from models import Walkable
+from walkable import Walkable
 from django.core.urlresolvers import reverse
 from django.db import models
+from bc_jsonfield import JsonField
 
 class SeparatedValuesField(models.TextField):
     __metaclass__ = models.SubfieldBase
@@ -15,7 +16,7 @@ class SeparatedValuesField(models.TextField):
             return value
         return value.split(self.token)
 
-    def get_db_prep_value(self, value):
+    def get_prep_value(self, value):
         if not value: return
         assert(isinstance(value, list) or isinstance(value, tuple))
         return self.token.join([unicode(s) for s in value])
@@ -26,20 +27,24 @@ class SeparatedValuesField(models.TextField):
 
 class AnalysisStep(models.Model, Walkable):
 	"Analysis workflow default object."
-	job_type = models.ForeignKey(JobType)
-	predicate = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False, through=models.FunctorBind)
-	defaults = JsonField(blank=True)
+	job_type = models.ForeignKey('JobType')
+	predicate = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False, through='FunctorBind')
+	defaults = JsonField(blank=True, default=dict())
+
+	def bind_by(self, next_step, type):
+		from functors import FunctorType, FunctorBind
+		FunctorBind(entry=self, exit=next_step, functor_type=FunctorType.objects.get(class_name=type)).save()
 	
 	def spawn(self, status='pending', **kwargs):
 		"Recursive method to create a job chain from this step in the chain."
 		params = dict()
-		for key,default in defaults.items():
+		for key,default in self.defaults.items():
 			if key in kwargs:
 				params[key] = kwargs[key]
 				del kwargs[key]
 			else:
 				params[key] = default
-		job = job_type.spawn(status, **params)
+		job = self.job_type.spawn(status, **params)
 		for next_step in self.subsequents:
 			job.subsequents.add(next_step.spawn(status, **kwargs))
 		job.save()
@@ -62,7 +67,7 @@ class Analysis(models.Model):
 	"An analysis is a handle for a chain of jobs."
 	name = models.CharField('A short name for this analysis workflow.', max_length=255)
 	description = models.TextField('An explanitory description of this analysis workflow.')
-	tags = SeparatedValuesField('Comma-delimited list of tags associated with this analysis, used with the routing system')
+	tags = SeparatedValuesField('Comma-delimited list of tags associated with this analysis, used with the routing system', null=True, blank=True)
 	analysis_head = models.OneToOneField(AnalysisStep)
 	
 	def get_args(self):
@@ -76,31 +81,16 @@ class Analysis(models.Model):
 		
 	def is_cyclic(self):
 		#true-false if it contains a cycle
-		sb = analysis.head.subset()
-		sb.remove(analysis_head)
-		return any([analysis_head.is_cyclic(s) for s in sb]) 
+		sb = self.analysis_head.subset()
+		sb.remove(self.analysis_head)
+		return any([self.analysis_head.is_cyclic(s) for s in sb]) 
 		
 	def aggregate(self, jobs):
 		"Method to produce combined, single docker image to reproduce the entire analysis."	
+		#not sure how to do this yet
 		pass
 		
 	@classmethod
 	def aggregate(jobs):
 		"Class method to aggregate multiple docker aggregations into a single one."
 		pass
-	
-	@property
-	def json(self):
-		from collections import OrderedDict
-		struct = {
-			'id':self.pk,
-			'name':self.name,
-			'description':self.description,
-			'bind_endpoint':reverse
-		}
-
-		argsdict = OrderedDict()
-		analysis_head.walk(lambda a: a.get_args(argsdict))
-
-	def get_absolute_url(self):
-		return reverse("analyses_endpoint", {'analysis_id':self.pk})

@@ -1,4 +1,9 @@
-from functor import Functor, FunctorBind, FunctorType
+import walkable
+
 from jobtypes import JobType
-from jobs import Walkable Job, Datapoint, Resource
+
+from functors import Functor, FunctorBind, FunctorType
+
+from jobs import Job, DataPoint, Resource
+
 from analyses import Analysis, AnalysisStep

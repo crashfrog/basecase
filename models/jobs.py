@@ -1,29 +1,19 @@
-from models import JobType, Functor
+#from models.jobs import JobType
+#from models.functors import Functor
+from django.db import models
 from django.core.urlresolvers import reverse
+
+from bc_jsonfield import JsonField
+
+import basecase.settings
 
 from rest_framework import serializers
 
-class Walkable(object):
-	"Abstract base class mixin for acyclic directed graphs and trees"
-	
-	def walk(self, func):
-		func(self)
-		try:
-			for s in self.subsequents:
-				func(s)
-		except AttributeError:
-			return AttributeError("Object of class '{}' has no 'subsequents' attribute.".format(type(self)))
-			
-	def subset(self):
-		s = {self} #a set containing this object
-		for wb in self.subsequents:
-			s = s + wb.subset()
-		return s
-
+from walkable import Walkable
 	
 class Job(models.Model, Walkable):
 	
-	job_type = models.ForeignKey(JobType)
+	job_type = models.ForeignKey('JobType')
 	analysis = models.ForeignKey('Analysis', related_name='spawned_jobs', null=True)
 	status = models.CharField(max_length=255, choices=[('pending', 'Initial state - ready to be packaged into a work unit.'),
 													   ('priority pending', 'Package first and execute at elevated priority.'),
@@ -40,14 +30,14 @@ class Job(models.Model, Walkable):
 	parameters = JsonField(blank=True)
 	#result = JsonField(blank=True)
 	
-	predicates = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False, through=models.Functor) #this is a directed acyclic graph
-	resources = models.ManyToManyField('Resource')
+	predicates = models.ManyToManyField('self', null=True, related_name='subsequents', symmetrical=False, through='Functor') #this is a directed acyclic graph
 	
-	products = models.ManyToManyField('Resource', db_table='job_resource_products')
+	resources = models.ManyToManyField('Resource', related_name='input_to')
+	products = models.ManyToManyField('Resource', db_table='basecase_job_resource_products', related_name='output_of')
 	
 	#provenance = models.TextField(blank=True, null=True)
 	
-	added = models.DateTimeField(autonow=True)
+	added = models.DateTimeField(auto_now_add=True)
 	started = models.DateTimeField(null=True, blank=True)
 	finished = models.DateTimeField(null=True, blank=True)
 	
@@ -122,7 +112,7 @@ class Job(models.Model, Walkable):
 			for subsequent in self.subsequents:
 				Functor.objects.get(entry=self, exit=subsequent)()
 		except Exception:
-			
+			raise
 		self.save()
 			
 		
@@ -137,7 +127,7 @@ class Job(models.Model, Walkable):
 		import json
 
 		context = {'job':self,
-				   'job_type',self.job_type,
+				   'job_type':self.job_type,
 				   'config':basecase.settings}
 		if not self.job_type.shortwork:
 			
@@ -274,7 +264,7 @@ class Resource(models.Model):
 	#virtual_location = models.TextField(null=True, blank=True)
 	temporary = models.BooleanField('Whether this resource should be deleted after chain is complete.', default=False)
 	checksum = models.CharField(max_length=32)
-	resource_type = models.CharField(max_length=32, choices=('input', 'output'), default='input')
+	#resource_type = models.CharField(max_length=32, choices=('input', 'output'), default='input')
 	
 	def delete(self, *a, **k):
 		import shutil, os, os.path

@@ -1,0 +1,21 @@
+- model: basecase.JobType
+  pk: 1
+  fields:
+    name: "Identity"
+    command_template: "{% for resource in resources %}cp {{ resource }} {{output}}{% endfor %}"
+- model: basecase.FunctorType
+  pk: 1
+  fields:
+    class_name: "Pass"
+- model: basecase.FunctorType
+  pk: 2
+  fields:
+    class_name: "Fanout"
+- model: basecase.FunctorType
+  pk: 3
+  fields:
+    class_name: "Fanin"
+- model: basecase.FunctorType
+  pk: 4
+  fields:
+    class_name: "Unix_Pipe"

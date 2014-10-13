@@ -1,4 +1,6 @@
 import basecase.settings
+from bc_jsonfield import JsonField
+from django.db import models
 
 class JobType(models.Model):
 	"Job type metamodel"
@@ -15,7 +17,7 @@ class JobType(models.Model):
 	
 #	binaries = models.ManyToManyField('Resource')
 	
-	image = models.CharField("Name or ID of the docker image for this tool.", max_length=80, unique=True)
+	image = models.CharField("Name or ID of the docker image for this tool.", max_length=255)
 	command_template = models.TextField("Django template for command.", help_text="""
 This is rendered by Django's template engine and supplied as the default command for the job image. The context will
 include at least:
@@ -28,17 +30,16 @@ the options argument list at 'options'
 	
 	prototype = JsonField('A JSON structure of parameter arguments and defaults for jobs of this type.', blank=True, default=([], {}))
 	
-	result_mask = JsonField(blank=True, default={})
+	#result_mask = JsonField(blank=True, default={})
 	
-	inputs = JsonField(default=lambda: {'patterns':['*fastq', '*fastq.gz'], 'directory':False})
+	inputs = JsonField(default=lambda: {'patterns':['*fastq', '*fastq.gz', '*', ], 'directory':False})
 	shortwork = models.BooleanField("Shortwork job types don't farm out to workers but execute locally", default=False)
 	
 	
 	def __init__(self, *args, **kwargs):
 		"Method override to capture changes on prototype field."
 		super(JobType, self).__init__(*args, **kwargs)
-		self.old_positional_prototype = self.positional_prototype
-		self.old_flag_prototype = self.positional_prototype
+		self.old_prototype = self.prototype
 	
 	def save(self, *args, **kwargs):
 		"Method override so that child events inherit changes to prototype."
