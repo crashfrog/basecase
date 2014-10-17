@@ -3,6 +3,7 @@
   fields:
     name: "Identity"
     command_template: "{% for resource in resources %}cp {{ resource }} {{output}}{% endfor %}"
+    shortwork: 1
 - model: basecase.FunctorType
   pk: 1
   fields:
@@ -19,3 +20,14 @@
   pk: 4
   fields:
     class_name: "Unix_Pipe"
+- model: basecase.JobType
+  pk: 10
+  fields:
+    name: SpadesTest
+    prototype: 
+      - {o: "/tmp"}
+      - 'test'
+    description: Spades 3.1 internal test
+    image: localhost:5000/spades3.1
+    command_template: "spades.py {flags} {options}"
+    shortwork: 0
