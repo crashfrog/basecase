@@ -78,7 +78,7 @@ def jobs_view(request):
 	return {'status':'ready',
 			'id':2,
 			'name':'dummy_job',
-			'added':datetime.datetime.today().isoformat(),
+			'added':datetime.datetime.today().strftime('%Y-%m-%d %H-%M-%S'),
 			'started':None,
 			'finished':None,
 			'workunit':'{}:{}/job{}'.format(
