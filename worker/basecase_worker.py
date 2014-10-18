@@ -33,9 +33,7 @@ class BCWorker(Daemon):
 				json.dump(self.prefs, prefs_file, indent=2)
 
 	def api_get(self, endpoint):
-		if endpoint[0] != '/':
-			endpoint = '/' + endpoint
-		return requests.get(self.prefs['api'] + endpoint, auth=auth)
+		return requests.get(os.path.join(self.prefs['api'], endpoint), auth=auth)
 
 	def api_post(self, endpoint, *args, **kwargs):
 		pass
@@ -54,7 +52,7 @@ class BCWorker(Daemon):
 				r.raise_for_status()
 				if r.status_code == requests.codes.ok:
 					stdoutput = ''
-					job = r.json()
+					job = r.json()['object']
 					#get the job from the Basecase private Docker repo
 					self.api_post(job['logging_url'], '({client_id}) *** Pulling ***'.format(**self.prefs))
 					dock.pull(job['workunit_url'], tag=job['id'])

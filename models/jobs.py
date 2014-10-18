@@ -281,8 +281,9 @@ class Resource(models.Model):
 class ResourceSerializer(serializers.HyperlinkedModelSerializer):
 
 	content = None
+	filename = None
 
 	class Meta:
 		model = Resource
-		fields = ('checksum', 'temporary', 'resource_type', )
+		fields = ('checksum', 'temporary',)
 		read_only_fields = ('id', 'jobs', )
