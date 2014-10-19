@@ -1,0 +1,28 @@
+<html>
+	<head>
+		{% block scripts %}
+		<script type="text/javascript" src="static/angular.js">
+		<script type="text/javascript" src="static/JSPlumb.js">
+		<script type="text/javascript" src="static/basecase.js">
+		{% endblock %}
+		<title>{% block title }BaseCase Analysis Engine{% endblock %}</title>
+	</head>
+	<body>
+		{% block toolbar %}
+		<div id="toolbar">
+		</div>
+		{% endblock %}
+		{% block breadcrumbs %}
+		<div id="breadcrumbs">
+		</div>
+		{% endblock %}
+		{% block toolbox %}
+		<div id="toolbox">
+		</div>
+		{% endblock %}
+		{% block content %}
+		<div id="content">
+		</div>
+		{% endblock %}
+	</body>
+</html>

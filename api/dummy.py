@@ -6,36 +6,34 @@ from django.http import HttpResponse
 import datetime
 import basecase.settings
 
-urls.urlpatterns += patterns( #monkeypatch in the API endpoint
-	url('^test', include('basecase.api.dummy'))
-	)
+
 	
 urlpatterns = patterns(
 
-	url(r"config/(?P<worker_conf>)/$", v1.config),
-	url(r"jobs/$", jobs),
-	url(r"jobs/id/(?P<id>\S+)/$", jobs),
-	url(r"jobs/id/(?P<id>\S+)/files/$", job_files),
+	url(r"^config/(?P<worker_conf>)/$", v1.config),
+	url(r"^jobs/$", jobs),
+	url(r"^jobs/id/(?P<id>\S+)/$", jobs),
+	url(r"^jobs/id/(?P<id>\S+)/files/$", job_files),
 
-	url(r"jobs/next/$", jobs, id=True),
+	url(r"^jobs/next/$", jobs, id=True),
 
-	url(r"jobs/id/(?P<job_id>\S+)/datapoints/$", datapoints),
-	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", datapoints),
-	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", datapoints),
+	url(r"^jobs/id/(?P<job_id>\S+)/datapoints/$", datapoints),
+	url(r"^jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", datapoints),
+	url(r"^jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", datapoints),
 
-	url(r"jobs/id/(?P<id>)\S+)/logs/$", logs, name="log_endpoint"),
+	url(r"^jobs/id/(?P<id>)\S+)/logs/$", logs, name="log_endpoint"),
 	
-	url(r"jobs/id/(?P<id>)\S+)/finish/$", jobs, force_as='POST'),
+	url(r"^jobs/id/(?P<id>)\S+)/finish/$", jobs, force_as='POST'),
 
-	url(r"jobtypes/$", jobtypes),
-	url(r"jobtypes/id/(?P<id>)\S+)/$", jobtypes),
-	url(r"jobtypes/id/(?P<id>)\S+)/jobs", jobs, id=None),
+	url(r"^jobtypes/$", jobtypes),
+	url(r"^jobtypes/id/(?P<id>)\S+)/$", jobtypes),
+	url(r"^jobtypes/id/(?P<id>)\S+)/jobs", jobs, id=None),
 
-	url(r"analyses/$", analyses),
-	url(r"analyses/id/(?P<id>)\S+)/$", analyses),
+	url(r"^analyses/$", analyses),
+	url(r"^analyses/id/(?P<id>)\S+)/$", analyses),
 	
-	url(r"analyses/step/id/(?P<id>\S+)", analyses),
-	url(r"analyses/step/id/(?P<id>\S+)/bind/(?P<exit_id>\S+)/$", binds),
+	url(r"^analyses/step/id/(?P<id>\S+)", analyses),
+	url(r"^analyses/step/id/(?P<id>\S+)/bind/(?P<exit_id>\S+)/$", binds),
 	
 	)
 	

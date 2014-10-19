@@ -12,36 +12,34 @@ from django.http import HttpResponse
 from basecase import models
 import json
 
-urls.urlpatterns += patterns( #monkeypatch in the API endpoint
-	url('^{}'.format(basecase.settings.API), include('basecase.api'))
-	)
+
 
 urlpatterns = patterns(
 
-	url(r"config/(?P<worker_conf>)/$", config),
-	url(r"jobs/$", JobsView.as_view()),
-	url(r"jobs/id/(?P<id>\S+)/$", JobsView.as_view(), name="job_endpoint"),
-	url(r"jobs/id/(?P<id>\S+)/files/$", job_files, name="job_files_endpoint"),
+	url(r"^config/(?P<worker_conf>)/$", config),
+	url(r"^jobs/$", JobsView.as_view()),
+	url(r"^jobs/id/(?P<id>\S+)/$", JobsView.as_view(), name="job_endpoint"),
+	url(r"^jobs/id/(?P<id>\S+)/files/$", job_files, name="job_files_endpoint"),
 
-	url(r"jobs/next/$", get_next),
+	url(r"^jobs/next/$", get_next),
 
-	url(r"jobs/id/(?P<job_id>\S+)/datapoints/$", DataPointsView.as_view(), name="job_datapoints_endpoint"),
-	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", DataPointsView.as_view(), name="datapoint_endpoint"),
-	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", DataPointsView.as_view()),
+	url(r"^jobs/id/(?P<job_id>\S+)/datapoints/$", DataPointsView.as_view(), name="job_datapoints_endpoint"),
+	url(r"^jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", DataPointsView.as_view(), name="datapoint_endpoint"),
+	url(r"^jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", DataPointsView.as_view()),
 
-	url(r"jobs/id/(?P<id>)\S+)/logs/$", logs, name="log_endpoint"),
+	url(r"^jobs/id/(?P<id>)\S+)/logs/$", logs, name="log_endpoint"),
 	
-	url(r"jobs/id/(?P<id>)\S+)/finish/$", job_finish, name="finish_endpoint"),
+	url(r"^jobs/id/(?P<id>)\S+)/finish/$", job_finish, name="finish_endpoint"),
 
-	url(r"jobtypes/$", JobTypesView.as_view()),
-	url(r"jobtypes/id/(?P<id>)\S+)/$", JobTypesView.as_view(), name="jobtype_endpoint"),
-	url(r"jobtypes/id/(?P<id>)\S+)/jobs", JobsView.as_view()),
+	url(r"^jobtypes/$", JobTypesView.as_view()),
+	url(r"^jobtypes/id/(?P<id>)\S+)/$", JobTypesView.as_view(), name="jobtype_endpoint"),
+	url(r"^jobtypes/id/(?P<id>)\S+)/jobs", JobsView.as_view()),
 
-	url(r"analyses/$", AnalysisView.as_view()),
-	url(r"analyses/id/(?P<id>)\S+)/$", AnalysisView.as_view(), name="analyses_endpoint"),
+	url(r"^analyses/$", AnalysisView.as_view()),
+	url(r"^analyses/id/(?P<id>)\S+)/$", AnalysisView.as_view(), name="analyses_endpoint"),
 	
-	url(r"analyses/step/id/(?P<id>\S+)", AnalysisStepView.as_view(), name="steps_endpoint"),
-	url(r"analyses/step/id/(?P<id>\S+)/bind/(?P<exit_id>\S+)/$", BindsView.as_view(), name="bind_endpoint"),
+	url(r"^analyses/step/id/(?P<id>\S+)", AnalysisStepView.as_view(), name="steps_endpoint"),
+	url(r"^analyses/step/id/(?P<id>\S+)/bind/(?P<exit_id>\S+)/$", BindsView.as_view(), name="bind_endpoint"),
 	
 	)
 	
