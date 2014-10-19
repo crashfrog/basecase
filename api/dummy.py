@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-version = 0 #dummy test API
-
-urls.urlpatterns += patterns( #monkeypatch in the API endpoint
-	url('^test', include('basecase.api.dummy'))
-	)
-=======
 version = 0 #dummy test API
 
 import v1 #some endpoints we just pass through
@@ -170,4 +163,3 @@ def binds(request):
 			'exit':'/test/jobs/id/2/',
 			'type':'test_bind'}
 			
->>>>>>> a9f8cc5acadb53214890e61a90192252ab4584f8
