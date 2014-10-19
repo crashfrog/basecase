@@ -27,7 +27,7 @@ urlpatterns = patterns(
 
 	url(r"jobs/id/(?P<job_id>\S+)/datapoints/$", DataPointsView.as_view(), name="job_datapoints_endpoint"),
 	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", DataPointsView.as_view(), name="datapoint_endpoint"),
-	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", DataPointsView.as_view())
+	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", DataPointsView.as_view()),
 
 	url(r"jobs/id/(?P<id>)\S+)/logs/$", logs, name="log_endpoint"),
 	

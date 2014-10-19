@@ -87,7 +87,7 @@ class TestDummyUrlConf(TestCase):
 		
 	def api_test(self, endpoint):
 		import requests
-		return requests.get(os.path.join('http://localhost/test/').json()['object']
+		return requests.get(os.path.join('http://localhost/test/', endpoint)).json()['object']
 		
 	def testJobs(self):
 		self.assertEquals([api.dummy.jobs_view(None), api.dummy.jobs_view(None)], api_test('/jobs/'))

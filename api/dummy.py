@@ -21,7 +21,7 @@ urlpatterns = patterns(
 
 	url(r"jobs/id/(?P<job_id>\S+)/datapoints/$", datapoints),
 	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/$", datapoints),
-	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", datapoints)
+	url(r"jobs/id/(?P<job_id>)\S+)/datapoints/(?P<id>\S+)/(?P<format>\S+)/$", datapoints),
 
 	url(r"jobs/id/(?P<id>)\S+)/logs/$", logs, name="log_endpoint"),
 	
@@ -103,7 +103,7 @@ def jobs_files(request):
 			 'content':None,
 			 'id':1,
 			 'jobs':['/test/jobs/id/1/',
-			 		['/test/jobs/id/2/']
+			 		'/test/jobs/id/2/']
 			 },
 			{'checksum':'d41d8cd98f00b204e9800998ecf8427e',
 			 'filename':'another_file.fastq',
@@ -111,7 +111,7 @@ def jobs_files(request):
 			 'content':None,
 			 'id':2,
 			 'jobs':['/test/jobs/id/1/',
-			 		['/test/jobs/id/2/']}]
+			 		'/test/jobs/id/2/']}]
 			
 @dummy_function
 def datapoints(request):
