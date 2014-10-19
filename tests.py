@@ -38,6 +38,7 @@ class TestDefaultFixtures(TestCase):
 		self.assertEquals(self.job.name, 'Identity')
 
 	def testFunctors(self):
+	
 		self.assertEquals(FunctorType.objects.get(id=1).class_name, 'Pass')
 		self.assertEquals(FunctorType.objects.get(id=2).class_name, 'Fanout')
 		self.assertEquals(FunctorType.objects.get(id=3).class_name, 'Fanin')
@@ -49,8 +50,8 @@ class TestSpawn(TestCase):
 	
 		self.test_jobtype = JobType.objects.create(**jobtype_args)
 		self.test_jobtype2 = JobType.objects.create(name='TestNextJob', 
-																								prototype=[{'step_arg':'foo'}, 'bar'],
-																								image='ubuntu:14.04')
+													prototype=[{'step_arg':'foo'}, 'bar'],
+													image='ubuntu:14.04')
 		self.step2 = AnalysisStep.objects.create(job_type=self.test_jobtype2)
 		self.step1 = AnalysisStep.objects.create(job_type=self.test_jobtype, defaults={'test_arg':'qux', 'test_arg2':'quux'})
 		self.step1.bind_by(self.step2, 'Pass')
@@ -76,6 +77,35 @@ class TestSpawn(TestCase):
 		self.assertEquals(job.parameters[0]['test_arg'], 'baz')
 		for next_job in job.subsequents.all():
 			self.assertEquals(next_job.parameters[0]['step_arg'], 'qux')
+			
+class TestDummyUrlConf(TestCase):
+	
+	import api.dummy
+	
+	def setUp(self):
+		pass
+		
+	def api_test(self, endpoint):
+		import requests
+		return requests.get(os.path.join('http://localhost/test/').json()['object']
+		
+	def testJobs(self):
+		self.assertEquals([api.dummy.jobs_view(None), api.dummy.jobs_view(None)], api_test('/jobs/'))
+		self.assertEquals(api.dummy.jobs_view(None), api_test('/jobs/id/1'))
+		
+	def testJobsFiles(self):
+		self.assertEquals(api.dummy.jobs_files(None), api_test('/jobs/id/1/files/'))
+		
+	def testLogs(self):
+		self.assertEquals(api.dummy.logs(None), api_test('jobs/id/1/logs'))
+	
+	def testJobtypes(self):
+		self.assertEquals([api.dummy.jobtypes(None), api.dummy.jobtypes(None)], api_test('/jobtypes/'))
+		self.assertEquals(api.dummy.jobtypes(None), api_test('jobtypes/id/1'))
+		
+	def testAnalyses(self):
+		self.assertEquals([api.dummy.analyses(None), api.dummy.analyses(None)], api_test('/analyses/'))
+		self.assertEquals(api.dummy.analyses(None), api_test('analyses/id/1'))
 
 @skip
 class TestDocker(TestCase):
