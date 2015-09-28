@@ -1,7 +1,10 @@
-from django.conf import url, patterns
+from django.conf.urls import url, patterns
+
+def view(request):
+	pass
 
 urlpatterns = patterns(
-	
+
 	url(r'^$', view)
-	
+
 	)

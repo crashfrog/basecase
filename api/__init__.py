@@ -1,5 +1,5 @@
 # API root URL patterns
-from django.conf import url, include, patterns
+from django.conf.urls import url, include, patterns
 
 urlpatterns = patterns(
 	url(r'^api/test', include('basecase.api.dummy')),
